@@ -1,0 +1,45 @@
+{{ define "offer_item_detail" }}
+<h2>案件詳細</h2>
+
+{{ $imageUrl := .data.OfferItem.DraftedItemInfo.ImageUrl }}
+{{ $itemId := .data.OfferItem.PickInfo.ItemId }}
+{{ $dfItemId := .data.OfferItem.PickInfo.GetDfItemId }}
+{{ $offerItemName := .data.OfferItem.Name }}
+{{ $draftedName := .data.OfferItem.DraftedItemInfo.Name }}
+
+<style>
+strong span {
+  overflow: hidden;
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+</style>
+
+<p>
+  <div class="row">
+    <div class="col-md-auto align-self-center">
+      <img src="{{ $imageUrl }}" width="100" class="rounded float-start me-2">
+    </div>
+    <div class="col align-self-center">
+      <strong>
+        案件名: {{ $offerItemName }}
+        <br>
+        案件ID: {{ $itemId }}
+        <br>
+        商品ID: {{ $dfItemId }}
+        <br>
+        商品名: {{ $draftedName }}
+        <br>
+      </strong>
+      <div>
+        投稿期間: {{ .data.ArticlePostingSchedule.StartDate.Local.Format "2006/01/02" }} - {{ .data.ArticlePostingSchedule.EndDate.Local.Format "2006/01/02" }}
+      </div>
+    </div>
+    <div class="col-md-auto align-self-center">
+      <a href="{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id }}/edit" class="btn btn-outline-primary rounded-pill">案件内容を編集する</a>
+    </div>
+  </div>
+</p>
+{{ end }}

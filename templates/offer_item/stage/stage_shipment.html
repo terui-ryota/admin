@@ -1,0 +1,201 @@
+{{ define "offer_item/stage/stage_shipment.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1></h1>
+      <script>
+        $('h1').text(stageJapaneseMap[{{$.stage}}]);
+      </script>
+
+      {{ template "offer_item_detail" . }}
+
+      <h2>オペレーション</h2>
+      <div>
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-truck" style="font-size: 32px"></i>
+            </div>
+            <b>個人情報を含めた暗号化ZIPファイルとして配送リストをエクスポートする</b>
+            <p>
+              配送リストをエクスポートできます。
+              <br>
+              <br>
+              {{ index $.stageAssigneeCountMap $.stage }}人
+              <br>
+              発送期間：{{ $.data.ShipmentSchedule.StartDate.Local.Format "2006/01/02" }} - {{ $.data.ShipmentSchedule.EndDate.Local.Format "2006/01/02" }}
+            </p>
+            <p class="text-end">
+              <input id="upload-file-prev" type="file" hidden>
+              <a id="shipment-preview-export" title="データの確認用に個人情報の取得なしでプレビューのCSVを取得します" class="btn btn-outline-secondary rounded-pill" onclick="exportPreview();">プレビューをエクスポート</a>
+            </p>
+            <p class="text-end">
+              <input id="upload-file" type="file" hidden>
+              <a id="shipment-zip-export" title="倉庫との連携用の暗号化済みZIPファイルを取得します" class="btn btn-outline-primary rounded-pill" onclick="exportEncryptedZip();">暗号化ZIPファイルをエクスポート</a>
+            </p>
+            <script>
+              $(function() {
+                $("#shipment-preview-export").tooltip({
+                  show:false,
+                  hide:false
+                });
+              });
+              $(function() {
+                $("#shipment-zip-export").tooltip({
+                  show:false,
+                  hide:false
+                });
+              });
+            </script>
+          </div>
+        </div>
+
+        <br>
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-truck" style="font-size: 32px"></i>
+            </div>
+            <b>配送リストをエクスポートする(旧)</b>
+            <p>
+              配送リストをエクスポートできます。
+              <br>
+              <br>
+              ※こちらのエクスポートでは選考中ステージで選考結果をインポートした際の、「発送した商品」、「ジャンコード」カラムは含まれません。
+              <br>
+              <br>
+              ※個人情報の出力には個人情報の閲覧権限が必要です。所持していない場合は、Slackの<a href="https://cyberagent.enterprise.slack.com/archives/C05QUPZBZ7X" target="_blank">#ameba_ec販促_オペレーションツール改革pjt</a> にてご相談ください。
+              <br>
+              <br>
+              {{ index $.stageAssigneeCountMap $.stage }}人
+              <br>
+              発送期間：{{ $.data.ShipmentSchedule.StartDate.Local.Format "2006/01/02" }} - {{ $.data.ShipmentSchedule.EndDate.Local.Format "2006/01/02" }}
+            </p>
+            <p class="text-end">
+              <input id="upload-file" type="file" hidden>
+              <a class="btn btn-outline-primary rounded-pill" onclick="exportTable();">エクスポートする</a>
+            </p>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-gift" style="font-size: 32px"></i>
+            </div>
+            <b>発送を完了する</b>
+            <p>ブロガーは下書きまたは、記事投稿にステージが移ります。</p>
+            <p class="text-end">
+              <a class="btn btn-outline-primary rounded-pill" onclick="finishShipment();">発送を完了する</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <h2>ステージにいるユーザー</h2>
+
+      <div>
+        <table
+          id="table"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-url="{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?stage={{ .stage }}&with_offer_item=true&with_personal_information=true&with_question_answers=true">
+          <thead>
+            <tr>
+              <th data-field="OfferItem.name">案件名</th>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+              {{ range $i, $q := $.questions }}
+              <th data-field="{{ $q.Id }}" data-formatter="questionAnswersFormatter">質問「{{ $q.Title }}」の回答</th>
+              {{ end }}
+            </tr>
+          </thead>
+        </table>
+        <table
+          hidden
+          id="table-export"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-export-options='{"csvUseBOM": true, "csvEnclosure": "\"", "exportHiddenCells": true}'
+          data-url="{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?stage={{ .stage }}&with_offer_item=true&with_personal_information=true&with_question_answers=true">
+          <thead>
+            <tr>
+              <th data-field="OfferItem.name">PR投稿案件名</th>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+              {{ range $i, $q := $.questions }}
+              <!-- <th data-field="{{ $q.Id }}" data-formatter="questionAnswersFormatter">質問「{{ $q.Title }}」の回答</th> -->
+              {{ end }}
+              <th data-field="PersonalInformation.name.family_name">姓</th>
+              <th data-field="PersonalInformation.name.given_name">名</th>
+              <th data-field="PersonalInformation.name.family_name_kana">姓_ひらがな</th>
+              <th data-field="PersonalInformation.name.given_name_kana">名_ひらがな</th>
+              <th data-field="PersonalInformation.post_code">郵便番号</th>
+              <th data-field="PersonalInformation.address">住所</th>
+              <th data-field="PersonalInformation.phone_number">電話番号</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+      <script>
+        function exportTable() {
+          $('#table-export').tableExport({
+            fileName: "{{ .data.OfferItem.Name }}_発送",
+          });
+        }
+        function exportPreview() {
+          window.open("{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id}}/shipment/preview/【配送依頼】AmebaPick案件（{{ .data.OfferItem.Name }}）_{{ index $.stageAssigneeCountMap $.stage }}名.csv?name={{ .data.OfferItem.Name }}")
+        }
+        function exportEncryptedZip() {
+          window.open("{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id}}/shipment/zip/【配送依頼】AmebaPick案件（{{ .data.OfferItem.Name }}）_{{ index $.stageAssigneeCountMap $.stage }}名.zip?name={{ .data.OfferItem.Name }}")
+        }
+        function finishShipment() {
+          if (!confirm('実行しますか？この操作は戻せません。')) {
+            return;
+          }
+          $.ajax({
+            method: "POST",
+            url: "{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id}}/finish_shipment",
+            success: function() {
+              alert('成功しました');
+              location.href = "{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id }}";
+            },
+            error: function(res) {
+              alert(`エラーです。 ${res.responseText}`);
+            }
+          })
+        }
+      </script>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}

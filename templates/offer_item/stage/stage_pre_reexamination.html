@@ -1,0 +1,72 @@
+{{ define "offer_item/stage/stage_pre_reexamination.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1></h1>
+      <script>
+        $('h1').text(stageJapaneseMap[{{$.stage}}]);
+      </script>
+
+      {{ template "offer_item_detail" . }}
+
+      <h2>オペレーション</h2>
+      <div>
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-send-exclamation" style="font-size: 32px"></i>
+            </div>
+            <b>リマインドを送る</b>
+            <p>下書き審査がNGのブロガーに対して、修正された記事の投稿がない場合にリマインドを送ります。</p>
+            <p class="text-end">
+              <a onclick="sendRemindMail('{{ .data.OfferItem.Id }}', '{{ .stage }}');" class="btn btn-outline-primary rounded-pill">リマインドする</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <hr>
+
+      <h2>ステージにいるユーザー</h2>
+
+      <div>
+        <table
+          id="table"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-url="{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?stage={{ .stage }}">
+          <thead>
+            <tr>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}

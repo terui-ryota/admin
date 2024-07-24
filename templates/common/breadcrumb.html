@@ -1,0 +1,35 @@
+{{ define "breadcrumb" }}
+
+{{ $breadcrumbJapaneseMap := dict
+    "new" "新規"
+    "edit" "編集"
+    "affiliator" "アフィリエイター"
+    "affiliate_item" "アフィリエイト案件"
+    "notification" "通知"
+    "item_history" "Pick 履歴"
+    "offer_item" "PR投稿案件"
+    "stage" "ステージ"
+}}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href='{{ if eq .contextPath "" }}/{{ else }}{{ .contextPath }}/{{ end }}'>Home</a></li>
+    {{ $currentPath := .contextPath }}
+    {{ range $i, $p := split "/" .path }}
+      {{ if eq $p "" }}
+        {{ continue}}
+      {{ end }}
+      {{ $jp := get $breadcrumbJapaneseMap $p }}
+      {{ if eq $jp "" }}
+        {{ $jp = $p }}
+      {{ end }}
+      {{ $currentPath = printf "%s/%s" $currentPath $p }}
+      {{ if eq $currentPath $.path }}
+        <li class="breadcrumb-item active" aria-current="page">{{ $jp }}</li>
+        {{ else }}
+        <li class="breadcrumb-item"><a href="{{ $currentPath }}">{{ $jp }}</a></li>
+      {{ end }}
+    {{ end }}
+  </ol>
+</nav>
+{{ end }}

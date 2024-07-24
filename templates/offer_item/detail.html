@@ -1,0 +1,247 @@
+{{ define "offer_item/detail.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      {{ template "offer_item_detail" . }}
+
+      <div id="stage-card-before-invitation"></div>
+
+      <hr>
+
+      <h2>ステージ</h2>
+      <p>ブロガーのステージを管理できます。</p>
+
+      <div id="stage-card"></div>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  <template id="stage-card-template">
+    <div class="card" style="background-color: #F8F9FA;">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-auto align-self-center">
+            <i id="stage-card-template-icon" class="bi" style="font-size: 32px"></i>
+          </div>
+          <div class="col">
+            <strong id="stage-card-template-title"></strong>
+            <p id="stage-card-template-description"></p>
+            <div id="stage-card-template-assignee-count"></div>
+            <div id="stage-card-template-term"></div>
+          </div>
+          <div class="col-md-auto align-self-end">
+            <a id="stage-card-template-link" href="" class="btn btn-outline-primary rounded-pill"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const c = '{{ .contextPath }}';
+    const stageAssigneeCountMap = JSON.parse("{{ JSON $.stageAssigneeCountMap }}");
+    const template = document.getElementById("stage-card-template");
+    const variables = [
+      {
+        icon: "gear-fill",
+        title: "案件管理",
+        description: "案件を管理画面に登録した状態。ブロガーにはまだ公開されていない。",
+        stage: "STAGE_BEFORE_INVITATION",
+        link_text: "編集する",
+        target_id: "stage-card-before-invitation",
+      },
+      {
+        icon: "person-plus-fill",
+        title: "参加募集",
+        description: "ユーザーのPR投稿案件が未回答の一覧に並んでいる状態。",
+        stage: "STAGE_INVITATION",
+        term_title: "参加募集期間",
+        start: '{{$.data.InvitationSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.InvitationSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "dice-3",
+        title: "選考中",
+        description: "ユーザーが選考結果を待っている状態。",
+        stage: "STAGE_LOTTERY",
+        term_title: "選考期間",
+        start: '{{$.data.LotterySchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.LotterySchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "truck",
+        title: "発送中",
+        description: "ユーザーが商品の発送を待っている状態。",
+        stage: "STAGE_SHIPMENT",
+        term_title: "発送期間",
+        start: '{{$.data.ShipmentSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.ShipmentSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "pencil-square",
+        title: "下書き提出",
+        description: "ユーザーが下書きを書けるようになっている状態。",
+        stage: "STAGE_DRAFT_SUBMISSION",
+        term_title: "下書き提出期間",
+        start: '{{$.data.DraftSubmissionSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.DraftSubmissionSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "check-lg",
+        title: "下書き審査中",
+        description: "ユーザーが下書きの審査結果を待っている状態。",
+        stage: "STAGE_PRE_EXAMINATION",
+        term_title: "下書き審査期間",
+        start: '{{$.data.PreExaminationSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.PreExaminationSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "check-all",
+        title: "下書き再提出",
+        description: "オペレーターがブロガーに対して、下書きの修正が必要な状態を通知する。",
+        stage: "STAGE_PRE_REEXAMINATION",
+        term_title: "下書き審査期間",
+        start: '{{$.data.PreExaminationSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.PreExaminationSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "pencil-square",
+        title: "記事投稿",
+        description: "ユーザーが記事の本番公開ができるようになっている状態。",
+        stage: "STAGE_ARTICLE_POSTING",
+        term_title: "記事投稿期間",
+        start: '{{$.data.ArticlePostingSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.ArticlePostingSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "check-lg",
+        title: "記事審査中",
+        description: "ユーザーが本番公開した記事の審査結果を待っている状態。",
+        stage: "STAGE_EXAMINATION",
+        term_title: "審査期間",
+        start: '{{$.data.ExaminationSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.ExaminationSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "check-all",
+        title: "記事再提出",
+        description: "オペレーターがブロガーに対して、記事の修正が必要な状態を通知する。",
+        stage: "STAGE_REEXAMINATION",
+        term_title: "審査期間",
+        start: '{{$.data.ExaminationSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.ExaminationSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "clock",
+        title: "支払い中",
+        description: "ユーザーが報酬の支払いを待っている状態。",
+        stage: "STAGE_PAYING",
+        term_title: "記事投稿後期間",
+        start: '{{$.data.ArticlePostingSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.PaymentSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "オペレーションする",
+      },
+      {
+        icon: "cash-coin",
+        title: "支払い完了",
+        description: "ユーザーが報酬の受け取り完了している状態。",
+        stage: "STAGE_PAYMENT_COMPLETED",
+        term_title: "記事投稿後期間",
+        start: '{{$.data.ArticlePostingSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.PaymentSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "確認する",
+      },
+      {
+        type: "hr",
+      },
+      {
+        icon: "hand-thumbs-down",
+        title: "選考落ち",
+        description: "ユーザーが選考で落ちたことがわかる状態。",
+        stage: "STAGE_LOTTERY_LOST",
+        term_title: "案件期間",
+        start: '{{$.data.InvitationSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.PaymentSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "確認する",
+      },
+      {
+        icon: "x-circle",
+        title: "終了",
+        description: "ユーザーが案件が終了したことがわかる状態。",
+        stage: "STAGE_DONE",
+        term_title: "案件期間",
+        start: '{{$.data.InvitationSchedule.StartDate.Local.Format "2006/01/02"}}',
+        end: '{{$.data.PaymentSchedule.EndDate.Local.Format "2006/01/02"}}',
+        link_text: "確認する",
+      },
+    ];
+    const data = JSON.parse("{{JSON .data}}")
+    for (let v of variables) {
+      let target_id = v.target_id  || "stage-card";
+      const template = document.getElementById("stage-card-template");
+      const content = template.content.cloneNode(true);
+      if (v.type === "hr") {
+        document.getElementById(target_id).appendChild(document.createElement("hr"));
+      } else {
+        if (!data.OfferItem.has_lottery && (v.stage === "STAGE_LOTTERY" || v.stage === "STAGE_LOTTERY_LOST")) {
+          console.log("skip", data.OfferItem.has_lottery, v.stage)
+          continue;
+        }
+        if (!data.OfferItem.has_sample && (v.stage === "STAGE_SHIPMENT")) {
+          console.log("skip", data.OfferItem.has_sample, v.stage)
+          continue;
+        }
+        if (!data.OfferItem.needs_preliminary_review && (v.stage === "STAGE_DRAFT_SUBMISSION" || v.stage === "STAGE_PRE_EXAMINATION" || v.stage === "STAGE_PRE_REEXAMINATION")) {
+          console.log("skip", data.OfferItem.needs_preliminary_review, v.stage)
+          continue;
+        }
+        if (!data.OfferItem.needs_after_review && (v.stage === "STAGE_EXAMINATION" || v.stage === "STAGE_REEXAMINATION")) {
+          console.log("skip", data.OfferItem.needs_preliminary_review, v.stage)
+          continue;
+        }
+        content.getElementById("stage-card-template-icon").classList.add(`bi-${v.icon}`);
+        content.getElementById("stage-card-template-title").textContent = v.title;
+        content.getElementById("stage-card-template-description").textContent = v.description;
+        content.getElementById("stage-card-template-assignee-count").textContent = `${stageAssigneeCountMap[v.stage]|0}人`;
+        if (v.term_title) {
+          content.getElementById("stage-card-template-term").textContent = `${v.term_title}：${v.start} - ${v.end}`;
+        }
+        content.getElementById("stage-card-template-link").href = `${contextPath}/offer_item/` + "{{ .data.OfferItem.Id }}" + `/${v.stage}`;
+        content.getElementById("stage-card-template-link").textContent = v.link_text;
+        document.getElementById(target_id).appendChild(content);
+        document.getElementById(target_id).appendChild(document.createElement("br"));
+      }
+    }
+  </script>
+
+  </body>
+</html>
+
+{{ end }}

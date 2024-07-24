@@ -1,0 +1,200 @@
+{{ define "offer_item/stage/stage_lottery.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1></h1>
+      <script>
+        $('h1').text(stageJapaneseMap[{{$.stage}}]);
+      </script>
+
+      {{ template "offer_item_detail" . }}
+
+      <h2>オペレーション</h2>
+      <div>
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-download" style="font-size: 32px"></i>
+            </div>
+            <b>
+              リストをエクスポートする
+            </b>
+            <p>
+              {{ index $.stageAssigneeCountMap $.stage }}人
+              <br>
+              選考期間：{{ $.data.LotterySchedule.StartDate.Local.Format "2006/01/02" }} - {{ $.data.LotterySchedule.EndDate.Local.Format "2006/01/02" }}
+            </p>
+            <p class="text-end">
+              <input id="upload-file" type="file" hidden>
+              <a class="btn btn-outline-primary rounded-pill" onclick="exportTable();">エクスポートする</a>
+            </p>
+            </div>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-upload" style="font-size: 32px"></i>
+            </div>
+            <b>選考結果をインポートする</b>
+            <p>
+              「選考結果」と、サンプリングありの案件の場合に対象のユーザーの「発送した商品」「ジャンコード」をインポートします。
+            </p>
+            <p>
+              「選考結果」の項目に設定する値
+              <li>当選の場合：<code>当選</code></li>
+              <li>落選の場合：<code>（空文字）</code></li>
+            </p>
+            <p>
+              「発送した商品」「ジャンコード」をカラムとして追加してインポートすることが可能です。
+              </br>
+              追加する場合は必ずインポートするCSVの末尾にカラム追加してください。
+              </br>
+            </p>
+            <p>
+              ここでインポートした「発送した商品」「ジャンコード」は、<code>発送中ステージ</code>の<code>個人情報を含めた暗号化ZIPファイルとして配送リストをエクスポートする</code>にて出力されます。
+            </p>
+            <p class="text-end">
+              <input id="upload-file" type="file" hidden>
+              <a class="btn btn-outline-primary rounded-pill" onclick="$('#upload-file').click();">インポートする</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <hr>
+
+      <h2>ステージにいるユーザー</h2>
+
+      <div>
+        <table
+          id="table"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-url="{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?stage={{ .stage }}&with_offer_item=true&with_question_answers=true">
+          <thead>
+            <tr>
+              <th data-field="OfferItem.name">案件名</th>
+              <th data-field="OfferItem.OptionalItem.Item.id">案件 ID</th>
+              <th data-field="OfferItem.OptionalDfItem.DfItem.id">商品 ID</th>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+              <th data-field="">選考結果</th>
+              {{ range $i, $q := $.questions }}
+              <th data-field="{{ $q.Id }}" data-formatter="questionAnswersFormatter">質問「{{ $q.Title }}」の回答</th>
+              {{ end }}
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+      <script>
+        function exportTable() {
+          $('#table').tableExport({
+            fileName: "{{ .data.OfferItem.Name }}_選考",
+          });
+        }
+        document.getElementById('upload-file').addEventListener('change', (e) => {
+          const reader = new FileReader();
+          const file = e.target.files[0];
+          e.target.value = '';
+          reader.onload = () => {
+            let csv;
+            try {
+              csv = $.csv.toArrays(reader.result);
+            } catch (e) {
+              alert('CSV ファイルの読み込みに失敗しました。 CSV ファイルか確認してください。');
+            }
+            const data = [];
+            let shipping_data_idxs = []
+            let jan_code_idx = -1
+            $(csv).each(function(idx, cols) {
+              if (idx === 0) {
+                // ヘッダー: 案件 ID,商品 ID,アメーバ ID,ステージ,選考結果
+                // アメーバ ID と選考結果のみを参照
+                // https://docs.google.com/spreadsheets/d/1P9TKqiJLiAk6Q9W6riqDYg-SwClWis6lT_hhwXg_8Oo/edit#gid=1149508418
+                cols.forEach((col, i) => {
+                  if (cols[i] === "発送した商品") { // NOTE: ここはカラム名を見ているので気をつける
+                    shipping_data_idxs.push(i)
+                  }
+                  if (cols[i] === "ジャンコード") {
+                    jan_code_idx = i
+                  }
+                })
+                return;
+              }
+              let is_passed = undefined;
+              if (cols[5] === '当選') {
+                is_passed = true;
+              } else if (cols[5] === '') {
+                is_passed = false;
+              } else {
+                alert(`「選考結果」の値が不正です。当選または、未入力（落選）のみ設定できます。行数: ${idx+1}, 不正な値: [[${cols[5]}]]`)
+                throw new Error(`invalid input: ${cols[5]}`);
+              }
+              let shipping_data = []
+              shipping_data_idxs.forEach((idx) => {
+                shipping_data.push(cols[idx])
+              })
+              let jan_code = ""
+              if (jan_code_idx >= 0) {
+                jan_code = cols[jan_code_idx]
+              }
+              data.push({
+                ameba_id: cols[3],
+                is_passed: is_passed,
+                shipping_data: shipping_data,
+                jan_code: jan_code,
+              })
+            });
+            alert(JSON.stringify(data.slice(0,3)));
+            $.ajax({
+              url: "{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id}}/save_lottery_results",
+              method: "POST",
+              contentType: "application/json",
+              data: JSON.stringify(data),
+              success: function(res) {
+                alert("成功しました。")
+                location.href = "{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id }}";
+              },
+              error: function(res) {
+                console.error(res)
+                alert(`エラーです。 ${res.responseText}`)
+              },
+            });
+          }
+          const encoding = prompt("ファイルの文字コードを入力してください。\nWindows と Mac などの OS でデフォルトの文字コードが異なります。\nインポート結果が文字化けする場合、ファイルの文字コードを確認の上、適切な値を指定してください。\nSHIFT-JIS （主に Windows の）場合: 「SJIS」 を指定してください。\nUTF-8 （主に Mac の）場合: 「UTF-8」 を指定してください", "SJIS");
+          reader.readAsText(file, encoding);
+        });
+      </script>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}

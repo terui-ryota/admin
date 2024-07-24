@@ -1,0 +1,27 @@
+{{ define "admin/index.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <body>
+    {{ template "header" . }}
+
+<div class="container-fluid">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+      <li>
+        <a href="{{ .contextPath }}/admin/users">Users</a>
+      </li>
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}

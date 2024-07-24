@@ -1,0 +1,146 @@
+{{ define "signup/dummy.html" }}
+
+{{ if ne .environment "prd" }}
+ 
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <body>
+    {{ template "header" . }}
+
+<div class="container-fluid">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1>アフィリエイター申請</h1>
+
+      <div id='editor_holder'></div>
+      <button id='submit' class="btn btn-primary">申請</button>
+  
+      <script>
+        const genders = {{ JSON .genders }};
+        delete genders["0"];
+        const cawises = {{ JSON .cawises }};
+        const examination_results = {{ JSON .examination_results }};
+        delete examination_results["0"];
+        const editor = new JSONEditor(document.getElementById('editor_holder'),{
+          schema: {
+            type: "object",
+            title: "申請フォーム",
+            required: [
+              "ameba_id",
+            ],
+            properties: {
+              ameba_id: {
+                type: "string"
+              },
+              genre: {
+                type: "string"
+              },
+              family_name: {
+                type: "string",
+                default: "サイバー",
+              },
+              given_name: {
+                type: "string",
+                default: "あめ子",
+              },
+              family_name_kana: {
+                type: "string",
+                default: "さいばー",
+              },
+              given_name_kana: {
+                type: "string",
+                default: "あめこ",
+              },
+              post_code: {
+                type: "string",
+                default: "0000000",
+              },
+              address: {
+                type: "string",
+                default: "東京都渋谷区1-1-1",
+              },
+              phone_number: {
+                type: "string",
+                default: "00000000",
+              },
+              gender: {
+                type: "number",
+                format: "select2",
+                enum: Object.keys(genders),
+                options: {
+                  enum_titles: Object.values(genders),
+                }
+              },
+              date_of_birth: {
+                type: "string",
+                format: "date",
+                default: "2000-01-01",
+              },
+              cawise_id: {
+                type: "string",
+                format: "select2",
+                enum: Object.keys(cawises),
+                options: {
+                  enum_titles: Object.values(cawises),
+                }
+              },
+              examination_result: {
+                description: "承認処理を行う際の承認結果",
+                type: "number",
+                format: "select2",
+                enum: Object.keys(examination_results),
+                options: {
+                  enum_titles: Object.values(examination_results),
+                },
+              },
+            }
+          },
+          theme: 'bootstrap5',
+          disable_edit_json: true,
+          disable_properties: true,
+        });
+
+        editor.on('ready',() => {
+        });
+  
+        document.getElementById('submit').addEventListener('click', function() {
+          const c = '{{ .contextPath }}';
+          const data = editor.getValue();
+          console.log(data)
+          fetch(`${c}/api/signup/dummy`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+          })
+          .then(response => response.text())
+          .then(data => {
+            alert(data);
+          });
+        });
+      </script>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  <script>
+    const c = '{{ .contextPath }}';
+  </script>
+
+  </body>
+</html>
+
+{{ end }}
+
+{{ end }}

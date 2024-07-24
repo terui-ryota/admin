@@ -1,0 +1,122 @@
+{{ define "admin/users/index.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+
+  <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-fluid">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1></h1>
+      <div id='editor_holder'></div>
+      <button id='submit' class="btn btn-primary">保存</button>
+
+      <table
+        id="table"
+        data-toggle="table"
+        data-data-field="data"
+        data-undefined-text=""
+        data-side-pagination="server"
+        data-url="{{ .contextPath }}/api/admin/users">
+        <thead>
+          <tr>
+            <th data-field="name">Name</th>
+            <th data-field="roles" data-formatter="rolesFormatter">Roles</th>
+            <th data-field="permissions" data-formatter="permissionsFormatter">Permissions</th>
+            <th data-field="operate" data-formatter="operateFormatter">Detail</th>
+          </tr>
+        </thead>
+      </table>
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+  <script>
+    const c = "{{ .contextPath }}";
+    const roles = {{ JSON .roles }};
+    const permissions = {{ JSON .permissions }};
+    const $table = $('#table');
+    // Initialize the editor with a JSON schema
+    const editor = new JSONEditor(document.getElementById('editor_holder'),{
+      schema: {
+        type: "object",
+        title: "User 新規作成",
+        properties: {
+          name: {
+            title: "Perman Console 上のユーザ名",
+            type: "string",
+            description: "指定できる名前は<a href='https://console.perman.jp/#/search_users' target='_blank'>Perman Console</a> などで検索可能です。<br>Perman Console 上の「ユーザー名」を指定してください。「外部ID（社員番号）」などではありません。 ",
+          },
+          roles: {
+            title: "ロール",
+            type: "array",
+            uniqueItems: true,
+            items: {
+              type: "string",
+              enum: roles,
+            }
+          },
+          permissions: {
+            title: "パーミッション",
+            type: "array",
+            uniqueItems: true,
+            items: {
+              type: "string",
+              enum: permissions
+            }
+          }
+        }
+      },
+      theme: 'bootstrap5',
+      disable_edit_json: true,
+      disable_properties: true,
+    });
+
+    editor.on('ready',() => {
+    });
+
+    document.getElementById('submit').addEventListener('click', function() {
+      $.ajax({
+        type: 'POST',
+        url: `${c}/api/admin/users`,
+        data: JSON.stringify(editor.getValue()),
+        contentType: 'application/json;charset=UTF-8',
+        success: function(res) {
+          alert('successfully!')
+          $table.bootstrapTable('refresh');
+        },
+        error: function(res) {
+          alert(`failed: ${res.responseText}`);
+        }
+      });
+    });
+
+    function rolesFormatter(value, row, index) {
+      return value.join('<br>')
+    }
+
+    function permissionsFormatter(value, row, index) {
+      return value.join('<br>')
+    }
+
+    function operateFormatter(value, row, index) {
+      return `<a class="btn btn-primary" href="${c}/admin/users/${row.name}">更新</a>`;
+    }
+  </script>
+
+  </body>
+</html>
+
+{{ end }}

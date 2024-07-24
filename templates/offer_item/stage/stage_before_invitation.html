@@ -1,0 +1,206 @@
+{{ define "offer_item/stage/stage_before_invitation.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1>案件管理</h1>
+
+      {{ template "offer_item_detail" . }}
+
+      <h2>オペレーション</h2>
+      <div>
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-auto align-self-center">
+                <i class="bi bi-gear-fill" style="font-size: 32px"></i>
+              </div>
+              <div class="col align-self-center">
+                <strong>案件を編集する</strong>
+              </div>
+              <div class="col-md-auto align-self-end">
+                <a href="{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id }}/edit" class="btn btn-outline-primary rounded-pill">編集する</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-auto align-self-center">
+                <i class="bi bi-person-plus" style="font-size: 32px"></i>
+              </div>
+              <div class="col">
+                <strong>参加を募集する</strong>
+                <p>作成した内容でブロガーに対して募集を行います。</p>
+                <div>{{ index $.stageAssigneeCountMap $.stage }}人</div>
+                <div>参加募集期間：{{ $.data.InvitationSchedule.StartDate.Local.Format "2006/01/02" }} - {{ $.data.InvitationSchedule.EndDate.Local.Format "2006/01/02" }}</div>
+              </div>
+              <div class="col-md-auto align-self-end">
+                <a class="btn btn-outline-primary rounded-pill" onclick="inviteOffer();">募集する</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-auto align-self-center">
+                <i class="bi bi-send-exclamation" style="font-size: 32px"></i>
+              </div>
+              <div class="col">
+                <strong>案件を終了する</strong>
+                <p>すべての支払対象のブロガーに対して支払いが完了されたことを確認し、オペレーターは案件を終了させてください。</p>
+              </div>
+              <div class="col-md-auto align-self-end">
+                <a onclick="closeOffer();" class="btn btn-outline-primary rounded-pill">終了する</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-auto align-self-center">
+                <i class="bi bi-download" style="font-size: 32px"></i>
+              </div>
+              <div class="col">
+                <strong>提出記事一覧をエクスポートする</strong>
+                <p>案件に紐づく全ての依頼者の提出記事をエクスポートできます。記事未提出の場合は空白になります。</p>
+              </div>
+              <div class="col-md-auto align-self-end">
+                <a class="btn btn-outline-primary rounded-pill" onclick="downloadExaminationCsv()">エクスポートする</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <table
+          id="table-assignees-examination"
+          data-toggle="table"
+          data-undefined-text=""
+          hidden
+        >
+          <thead>
+            <tr>
+              <th data-field="OfferItem.name">案件名</th>
+              <th data-field="OfferItem.OptionalItem.Item.id">案件 ID</th>
+              <th data-field="OfferItem.OptionalDfItem.DfItem.id">商品 ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+              <th data-field="" data-formatter="examinationEntryFormatter">記事 URL</th>
+            </tr>
+          </thead>
+        </table>
+
+      </div>
+
+      <hr>
+
+      <h2>ステージにいるユーザー</h2>
+
+      <div>
+        <table
+          id="table"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-url="{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?stage={{ .stage }}&with_offer_item=true">
+          <thead>
+            <tr>
+              <th data-field="OfferItem.name">PR投稿案件名</th>
+              <th data-field="OfferItem.OptionalItem.Item.id">案件 ID</th>
+              <th data-field="OfferItem.OptionalDfItem.DfItem.id">商品 ID</th>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+<script>
+  function inviteOffer() {
+    if (!confirm('実行しますか？この操作は戻せません。')) {
+      return;
+    }
+    $.ajax({
+      url: "{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/invite",
+      method: "PATCH",
+      success: function(res) {
+        alert('成功しました。')
+        location.href = "{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id }}";
+      },
+      error: function(res) {
+        alert(`エラーです。 ${res.responseText}`)
+      },
+    })
+  }
+  function closeOffer() {
+    if (!confirm('実行しますか？この操作は戻せません。')) {
+      return;
+    }
+    $.ajax({
+      url: '{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/close',
+      method: 'PATCH',
+      success: function(res) {
+        alert('成功しました。')
+        location.href = "{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id }}";
+      },
+      error: function(res) {
+        console.error(res)
+        alert(`エラーです。${res.responseText}`)
+      },
+    })
+  }
+  function downloadExaminationCsv() {
+    $.ajax({
+      method: "GET",
+      url: "{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?with_offer_item=true&entry_type=ENTRY_TYPE_ENTRY",
+    })
+    .then(
+      function(res) {
+        const $table = $("#table-assignees-examination");
+        $table.bootstrapTable().bootstrapTable('append', res.data);
+        $table.tableExport({
+          fileName: "{{ .data.OfferItem.Name }}_提出記事",
+        });
+      },
+      function(res) {
+        console.error(res);
+        alert('失敗しました。');
+      }
+    )
+  }
+</script>
+
+  </body>
+</html>
+
+{{ end }}

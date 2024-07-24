@@ -1,0 +1,121 @@
+{{ define "admin/users/detail.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-fluid">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1></h1>
+      <div id='editor_holder'></div>
+      <button id='submit' class="btn btn-primary">保存</button>
+      <button id='delete' class="btn btn-danger">削除</button>
+  
+      <script>
+        const name = {{ .name }};
+        const roles = {{ JSON .roles }};
+        const permissions = {{ JSON .permissions }};
+        const editor = new JSONEditor(document.getElementById('editor_holder'), {
+          schema: {
+            type: "object",
+            title: "User 更新",
+            properties: {
+              name: {
+                title: "Perman Console 上のユーザ名",
+                type: "string",
+                description: "指定できる名前は<a href='https://console.perman.jp/#/search_users' target='_blank'>Perman Console</a> などで検索可能です。<br>Perman Console 上の「ユーザー名」を指定してください。「外部ID（社員番号）」などではありません。 ",
+                readOnly: true,
+              },
+              roles: {
+                title: "ロール",
+                type: "array",
+                uniqueItems: true,
+                items: {
+                  type: "string",
+                  enum: roles,
+                }
+              },
+              permissions: {
+                title: "パーミッション",
+                type: "array",
+                uniqueItems: true,
+                items: {
+                  type: "string",
+                  enum: permissions,
+                }
+              }
+            }
+          },
+          theme: 'bootstrap5',
+          disable_collapse: true,
+          disable_edit_json: true,
+          disable_properties: true,
+        });
+
+        editor.on('ready',() => {
+          editor.setValue({{ JSON .data }});
+        });
+  
+        document.getElementById('submit').addEventListener('click', function() {
+          fetch(`${contextPath}/api/admin/users/${name}`, {
+            method: "PUT",
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(editor.getValue()),
+          })
+          .then(async res => {
+            const data = await res.json()
+            if (!res.ok) {
+              throw new Error(data);
+            }
+            alert('successfully!')
+            location.reload();
+          })
+          .catch(data => {
+            console.error(data);
+            alert(`failed: ${res.responseText}`)
+          });
+        });
+
+        document.getElementById('delete').addEventListener('click', function() {
+          if (!confirm(`「${name}」を削除します。この操作は元に戻せません。よろしいですか？`)) {
+            return;
+          }
+          fetch(`${contextPath}/api/admin/users/${name}`, {
+            method: "DELETE",
+          })
+          .then(async res => {
+            const data = await res.json()
+            if (!res.ok) {
+              throw new Error(data);
+            }
+            alert('successfully!')
+            location.href = `${contextPath}/admin/users`;
+          })
+          .catch(data => {
+            console.error(data);
+            alert(`failed: ${res.responseText}`)
+          });
+        });
+      </script>
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}
