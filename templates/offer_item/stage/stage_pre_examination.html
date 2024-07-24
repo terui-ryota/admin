@@ -1,0 +1,149 @@
+{{ define "offer_item/stage/stage_pre_examination.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1></h1>
+      <script>
+        $('h1').text(stageJapaneseMap[{{$.stage}}]);
+      </script>
+
+      {{ template "offer_item_detail" . }}
+
+      <h2>オペレーション</h2>
+      <div>
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-download" style="font-size: 32px"></i>
+            </div>
+            <b>審査リストをエクスポートする</b>
+            <p>
+              ブロガーが投稿した記事を審査します。<br>
+              審査OKの場合、記事投稿後のステージに移ります。<br>
+              審査NGの場合、再審査のステージに移ります。
+            </p>
+            <p class="text-end">
+              <input id="upload-file" type="file" hidden>
+              <a class="btn btn-outline-primary rounded-pill" onclick="exportTable();">エクスポートする</a>
+            </p>
+            </div>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-upload" style="font-size: 32px"></i>
+            </div>
+            <b>審査結果をインポートする</b>
+            <p>
+              ブロガーから下書き提出された記事を審査した結果をスプレッドシートから読み込みます。<br>
+              ブロガーの管理画面には審査結果が表示されます。
+            </p>
+            <p>
+              「審査結果」の項目に設定する値
+              <li>OKの場合：<code>OK</code></li>
+              <li>NGの場合：<code>NG</code></li>
+            </p>
+            <p class="text-end">
+              <input id="upload-file" type="file" hidden>
+              <a class="btn btn-outline-primary rounded-pill" onclick="$('#upload-file').click();">インポートする</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <hr>
+
+      <h2>ステージにいるユーザー</h2>
+
+      <div>
+        <table
+          id="table"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-url="{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?stage={{ .stage }}&with_offer_item=true&with_blogger=true&entry_type=ENTRY_TYPE_DRAFT&without_future_entry=false">
+          <thead>
+            <tr>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+              <th data-field="">審査結果</th>
+              <th data-field="" data-formatter="reasonFormatter">詳細コメント</th>
+              <th data-field="Examination.examiner_name">審査者名</th>
+              <th data-field="" data-formatter="examinationEntryFormatter">記事 URL</th>
+              <th data-field="OfferItem.id">PR投稿案件 ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+              <th data-field="OfferItem.OptionalItem.Item.id">案件 ID</th>
+              <th data-field="OfferItem.OptionalDfItem.DfItem.id">商品 ID</th>
+              <th data-field="" data-formatter="couponBannerIdFormatter">クーポンバナー ID（クーポン Pick ID）</th>
+              <th data-field="" data-formatter="existsPrImgUrlFormatter">PR 有無</th>
+              <th data-field="Examination.entry_submission_count">記事提出数</th>
+              <th data-field="OfferItem" data-formatter="itemUrlFormatter">商品 URL</th>
+              <th data-field="OfferItem.name">PR投稿案件名</th>
+              <th data-field="ExaminationEntry.last_edited_time" data-formatter="dateFormatter">記事更新日</th>
+              <th data-field="ExaminationEntry.published_time" data-formatter="dateFormatter">記事投稿日</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+      <script>
+        function exportTable() {
+          $('#table').tableExport({
+            fileName: `{{ .data.OfferItem.Name }}_下書き審査_${new Date().toLocaleString().replace(/\/| |:/g, '_')}`,
+          });
+        }
+        document.getElementById('upload-file').addEventListener('change', (e) => {
+          const reader = new FileReader();
+          const file = e.target.files[0];
+          e.target.value = '';
+          reader.onload = () => {
+            const data = parseExaminationCsvText(reader.result, false, false);
+            alert(JSON.stringify(data.slice(0,3)));
+            $.ajax({
+              url: "{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id}}/save_preexamination_results",
+              method: "POST",
+              contentType: "application/json",
+              data: JSON.stringify(data),
+              success: function(res) {
+                alert("成功しました。")
+                location.href = "{{ .contextPath }}/offer_item/{{ .data.OfferItem.Id }}";
+              },
+              error: function(res) {
+                console.error(res)
+                alert(`エラーです。 ${res.responseText}`)
+              },
+            });
+          }
+          reader.readAsText(file);
+        });
+      </script>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}

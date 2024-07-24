@@ -1,0 +1,95 @@
+{{ define "nav" }}
+{{ $bg := "" }}
+{{ $bgc := "" }}
+{{ if eq .environment "dev" }}
+  {{ $bg = "bg-success" }}
+{{ else if eq .environment "stg" }}
+  {{ $bgc = "#5740E1" }}
+{{ else if eq .environment "prd" }}
+  {{ $bgc = "#394148" }}
+{{ else }}
+  {{ $bg = "bg-secondary" }}
+{{ end }}
+<nav class="navbar navbar-expand-lg navbar-dark {{ $bg }}" style="background-color: {{ $bgc }};">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ .contextPath }}/">Ameba Pick 管理ツール β 版 @{{ .environment }}</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Admin
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdownAdmin">
+            <li><a class="dropdown-item" href="{{ .contextPath }}/admin/users">User</a></li>
+          </ul>
+        </li>
+        {{ if ne .environment "prd" }}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownSignup" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Signup
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdownSignup">
+            <li><a class="dropdown-item" href="{{ .contextPath }}/signup/dummy">SignupDummy</a></li>
+          </ul>
+        </li>
+        {{ end }}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ .contextPath }}/affiliator" role="button" aria-expanded="false">
+            Affiliator
+          </a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAffiliateItem" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            AffiliateItem
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdownAffiliateItem">
+            <li><a class="dropdown-item" href="{{ .contextPath }}/affiliate_item">Item</a></li>
+            <li><a class="dropdown-item" href="{{ .contextPath }}/affiliate_item/closed_item">ClosedItem</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Notification
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdownNotification">
+            <li><a class="dropdown-item" href="{{ .contextPath }}/notification/schedule">Schedule</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownOfferItem" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            OfferItem
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdownOfferItem">
+            <li><a class="dropdown-item" href="{{ .contextPath }}/offer_item">OfferItem</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownCommerce" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Commerce
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdownCommerce">
+            <li><a class="dropdown-item" href="{{ .contextPath }}/commerce/commerce_item">CommerceItem</a></li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="navbar-nav mb-2 mb-lg-0 justify-content-end">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            {{ or .loginUser.Name "Guest" }}さん
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
+            {{ if .loginUser }}
+            <li><a class="dropdown-item" href="{{ .contextPath }}/auth/logout">Logout</a></li>
+            {{ else }}
+            <li><a class="dropdown-item" href="{{ .contextPath }}/auth/login">Login</a></li>
+            {{ end }}
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+{{ end }}

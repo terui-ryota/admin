@@ -1,0 +1,82 @@
+{{ define "offer_item/stage/stage_invitation.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1></h1>
+      <script>
+        $('h1').text(stageJapaneseMap[{{$.stage}}]);
+      </script>
+
+      {{ template "offer_item_detail" . }}
+
+      <h2>オペレーション</h2>
+      <div>
+        <div class="card" style="background-color: #F8F9FA;">
+          <div class="card-body">
+            <div class="float-start me-2">
+              <i class="bi bi-send-exclamation" style="font-size: 32px"></i>
+            </div>
+            <b>リマインドを送る</b>
+            <p>
+              案件に回答していないユーザーに対してリマインドを送る。
+              <br>
+              {{ index $.stageAssigneeCountMap $.stage }}人
+              <br>
+              参加募集期間：{{ $.data.InvitationSchedule.StartDate.Local.Format "2006/01/02" }} - {{ $.data.InvitationSchedule.EndDate.Local.Format "2006/01/02" }}
+            </p>
+            <p class="text-end">
+              <a onclick="sendRemindMail('{{ .data.OfferItem.Id }}', '{{ .stage }}');" class="btn btn-outline-primary rounded-pill">リマインドする</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <h2>ステージにいるユーザー</h2>
+
+      <div>
+        <table
+          id="table"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-url="{{ .contextPath }}/api/offer_item/{{ .data.OfferItem.Id }}/assignee?stage={{ .stage }}&with_offer_item=true">
+          <thead>
+            <tr>
+              <th data-field="OfferItem.name">案件名</th>
+              <th data-field="OfferItem.OptionalItem.Item.id">案件 ID</th>
+              <th data-field="OfferItem.OptionalDfItem.DfItem.id">商品 ID</th>
+              <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+              <th data-field="Assignee.writing_fee">執筆報酬額</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}

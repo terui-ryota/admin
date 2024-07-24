@@ -1,0 +1,332 @@
+{{ define "offer_item/index.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <div class="row">
+        <div class="col">
+          <h1>PR投稿案件リスト</h1>
+        </div>
+        <div class="col text-end">
+          <a href="{{ .contextPath }}/offer_item/new" class="btn btn-primary rounded-pill"><i class="bi bi-pencil"></i> 新規案件を作成する</a>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col text-end">
+          <a class="btn btn-outline-primary rounded-pill" onclick="downloadExaminationCsv()">審査リストをエクスポートする</a>
+          <!-- <a class="btn btn-outline-primary rounded-pill" onclick="downloadExaminationCsv(100)">100件</a> -->
+          <input id="upload-file" type="file" hidden>
+          <a class="btn btn-outline-primary rounded-pill" onclick="$('#upload-file').click();">審査リストをインポートする</a>
+        </div>
+      </div>
+      <script>
+        function downloadExaminationCsv(limit) {
+          if (!limit) {
+            limit = 99999999;
+          }
+          $.ajax({
+            method: "GET",
+            url: "{{ .contextPath }}/api/offer_item/assignee_under_examination?limit="+limit,
+          })
+          .then(
+            function(res) {
+              const $table = $("#table-assignees-examination");
+              $table.bootstrapTable('removeAll').bootstrapTable('append', res.data);
+              $table.tableExport({
+                fileName: `全審査_${new Date().toLocaleString().replace(/\/| |:/g, '_')}`,
+              });
+            },
+            function(res) {
+              console.error(res);
+              alert('失敗しました。');
+            }
+          )
+        }
+      </script>
+
+      <table
+        id="table-assignees-examination"
+        data-toggle="table"
+        data-data-field="data"
+        data-undefined-text=""
+        hidden
+      >
+        <thead>
+          <tr>
+            <th data-field="Assignee.ameba_id" data-formatter="amebaIdFormatter">アメーバ ID</th>
+            <th data-field="">審査結果</th>
+            <th data-field="" data-formatter="reasonFormatter">詳細コメント</th>
+            <th data-field="Examination.examiner_name">審査者名</th>
+            <th data-field="" data-formatter="examinationEntryFormatter">記事 URL</th>
+            <th data-field="OfferItem.id">PR投稿案件 ID</th>
+            <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+            <th data-field="OfferItem.OptionalItem.Item.id">案件 ID</th>
+            <th data-field="OfferItem.OptionalDfItem.DfItem.id">商品 ID</th>
+            <th data-field="" data-formatter="couponBannerIdFormatter">クーポンバナー ID（クーポン Pick ID）</th>
+            <th data-field="" data-formatter="existsPrImgUrlFormatter">PR 有無</th>
+            <th data-field="Examination.entry_submission_count">記事提出数</th>
+            <th data-field="OfferItem" data-formatter="itemUrlFormatter">商品 URL</th>
+            <th data-field="OfferItem.name">PR投稿案件名</th>
+            <th data-field="ExaminationEntry.last_edited_time" data-formatter="dateFormatter">記事更新日</th>
+            <th data-field="ExaminationEntry.published_time" data-formatter="dateFormatter">記事投稿日</th>
+          </tr>
+        </thead>
+      </table>
+
+      <hr>
+
+      <div id='editor_holder'></div>
+      <button id='submit' class="btn btn-outline-primary rounded-pill">絞り込む</button>
+
+      <script>
+        const editor = new JSONEditor(document.getElementById('editor_holder'),{
+          schema: {
+            type: "object",
+            title: " ",
+            properties: {
+              search_text: {
+                title: " ",
+                type: "string",
+                options: {
+                  inputAttributes: {
+                    placeholder:  "案件名で絞り込む（部分一致）",
+                  },
+                },
+              },
+              item_id: {
+                title: " ",
+                type: "string",
+                options: {
+                  inputAttributes: {
+                    placeholder:  "e.g. RK000001. 案件IDで絞り込む（完全一致）",
+                  },
+                },
+              },
+              df_item_id: {
+                title: " ",
+                type: "string",
+                options: {
+                  inputAttributes: {
+                    placeholder:  "e.g. xxx:12345. 商品IDで絞り込む（完全一致）",
+                  },
+                },
+              },
+            }
+          },
+          theme: 'bootstrap5',
+          titleHidden: true,
+          disable_edit_json: true,
+          disable_properties: true,
+          disable_collapse: true,
+          no_additional_properties: true,
+        });
+
+        editor.on('ready', () => {
+          const data = {{ JSON .parameter }};
+          editor.setValue(data);
+        });
+
+        document.getElementById('submit').addEventListener('click', function() {
+          const query = (new URLSearchParams(editor.getValue()).toString());
+          location.href = location.href.split('?')[0] + '?' + query;
+        });
+      </script>
+
+      <table
+        id="table"
+        data-toggle="table"
+        data-data-field="data"
+        data-undefined-text=""
+        data-side-pagination="server"
+        data-pagination="true"
+        data-pagination-loop="false"
+        data-pagination-v-align="both"
+        data-page-size="25"
+        data-query-params="queryParams"
+        data-row-style="rowStyle"
+        data-show-columns="true"
+        data-show-header="false"
+        data-url="{{ .contextPath }}/api/offer_item/search">
+        <thead>
+          <tr>
+            <th data-field="debug" data-formatter="debugFormatter" data-visible="false">デバッグ</th>
+            <th data-field="" data-formatter="itemFormatter">案件</th>
+            <th data-field="operate" data-formatter="operateFormatter" data-width="220">Detail</th>
+          </tr>
+        </thead>
+      </table>
+
+    </main>
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  <script>
+    const c = '{{ .contextPath }}';
+    const postTargets = {{ .postTargets }};
+    function queryParams(params) {
+      params.item_id = "{{ .parameter.ItemID }}";
+      params.df_item_id = "{{ .parameter.DfItemID }}";
+      params.search_text = "{{ .parameter.SearchText }}";
+      return params;
+    }
+    function debugFormatter(value, row, index) {
+      const offerItem = row.OfferItem;
+      let assigneeCount = 0;
+      let countMapTexts = [];
+      for (let key in row.StageAssigneeCountMap) {
+        countMapTexts.push(`${stageJapaneseMap[stages[key]]}: ${row.StageAssigneeCountMap[key]}人`);
+      }
+
+      return [
+        `id: <code>${offerItem.id}</code>`,
+        `<a href="${c}/offer_item/${offerItem.id}/edit" class="btn btn-outline-primary rounded-pill">編集</a>`,
+        offerItem.has_sample ? `<span class="badge rounded-pill text-bg-primary">サンプリングあり</span>` : "",
+        offerItem.needs_preliminary_review ? `<span class="badge rounded-pill text-bg-primary">下書き審査あり</span>` : "",
+        offerItem.needs_after_review ? `<span class="badge rounded-pill text-bg-primary">記事審査あり</span>` : "",
+        offerItem.has_coupon ? `<span class="badge rounded-pill text-bg-primary">クーポンPickあり</span>` : "",
+        offerItem.post_required ? `<span class="badge rounded-pill text-bg-primary">投稿必須</span>` : "",
+        offerItem.has_special_commission ? `<span class="badge rounded-pill text-bg-primary">特別単価あり</span>` : "",
+        offerItem.has_lottery ? `<span class="badge rounded-pill text-bg-primary">選考あり</span>` : "",
+        `<span class="badge rounded-pill text-bg-danger">投稿対象：${postTargets[offerItem.post_target]}</span>`,
+        offerItem.is_invitation_mail_sent ? `<span class="badge rounded-pill text-bg-warning">案件参加依頼メールON</span>` : "",
+        offerItem.is_offer_detail_mail_sent ? `<span class="badge rounded-pill text-bg-warning">案件詳細メールON</span>` : "",
+        offerItem.is_passed_preliminary_review_mail_sent ? `<span class="badge rounded-pill text-bg-warning">下書き審査の結果OKメールON</span>` : "",
+        offerItem.is_failed_preliminary_review_mail_sent ? `<span class="badge rounded-pill text-bg-warning">下書き審査の結果NGメールON</span>` : "",
+        offerItem.is_article_post_mail_sent ? `<span class="badge rounded-pill text-bg-warning">記事投稿メールON</span>` : "",
+        offerItem.is_passed_after_review_mail_sent ? `<span class="badge rounded-pill text-bg-warning">審査の結果OKメールON</span>` : "",
+        offerItem.is_failed_after_review_mail_sent ? `<span class="badge rounded-pill text-bg-warning">審査の結果NGメールON</span>` : "",
+        countMapTexts.join('<br>')
+      ].filter(o => o).join('<br>');
+    }
+    function itemFormatter(value, row, index) {
+      const postingStartDate = new Date(row.ArticlePostingSchedule.StartDate);
+      const postingEndDate = new Date(row.ArticlePostingSchedule.EndDate);
+      return `
+<img src="${row.OfferItem.drafted_item_info.image_url}" width=100 alt="案件画像" class="rounded float-start me-2">
+<div>
+  <b>
+    案件名: ${row.OfferItem.name}
+    <br>
+    案件ID: ${row.OfferItem.pick_info.item_id}
+    <br>
+    商品ID: ${row.OfferItem.pick_info.OptionalDfItemId ? row.OfferItem.pick_info.OptionalDfItemId.DfItemId : ""}
+    <br>
+    商品名: ${row.OfferItem.drafted_item_info.name}
+  </b>
+  <p class="text-secondary">
+    投稿期間: ${postingStartDate.toLocaleDateString()} - ${postingEndDate.toLocaleDateString()}
+  </p>
+</div>
+`;
+    }
+
+    function operateFormatter(value, row, index) {
+      return [
+        `<a href="${c}/offer_item/${row.OfferItem.id}" class="btn btn-outline-primary rounded-pill">詳細</a>`,
+        `<a href="${c}/offer_item/new?source_id=${row.OfferItem.id}" class="btn btn-outline-primary rounded-pill">コピー</a>`,
+        `<a href="#" class="btn btn-outline-danger rounded-pill" onclick="deleteOfferItem('${row.OfferItem.id}');">削除</a>`,
+      ].join(' ');
+    }
+    function rowStyle(row, index) {
+      return {
+      }
+    }
+
+    function deleteOfferItem(id) {
+      if (!confirm('削除しますか？この操作は戻せません。')) {
+        return;
+      }
+      fetch(`${contextPath}/api/offer_item/${id}`, {
+        method: "DELETE",
+      })
+      .then(data => {
+        if (!data.ok) {
+          alert('失敗しました')
+          console.error(data);
+          return;
+        }
+        if (confirm('成功しました。リロードしますか？')) {
+          location.reload();
+        }
+      })
+      .catch(error => {
+        alert('失敗しました')
+        console.error(error);
+      });
+    }
+
+    document.getElementById('upload-file').addEventListener('change', (e) => {
+      const reader = new FileReader();
+      const file = e.target.files[0];
+      e.target.value = '';
+      reader.onload = () => {
+        const errors = [];
+        const data = parseExaminationCsvText(reader.result, true, true);
+        alert(`最初の 3 件をプレビューしています。\n${JSON.stringify(data.slice(0,3))}`);
+        const group = Object.groupBy(data, ({ offer_item_id, stage }) => `${offer_item_id}@${stage}`);
+        console.log(group);
+        for (let key in group) {
+          let [offerItemId, stage] = key.split("@");
+          let url;
+          if (stage === "STAGE_PRE_EXAMINATION") {
+            $.ajax({
+              url: `${contextPath}/api/offer_item/${offerItemId}/save_preexamination_results`,
+              method: "POST",
+              contentType: "application/json",
+              data: JSON.stringify(group[key]),
+              success: function(res) {
+                console.log(res);
+              },
+              error: function(res) {
+                console.error(res)
+                errors.push(key);
+              },
+            });
+          } else if (stage === "STAGE_EXAMINATION") {
+            $.ajax({
+              url: `${contextPath}/api/offer_item/${offerItemId}/save_examination_results`,
+              method: "POST",
+              contentType: "application/json",
+              data: JSON.stringify(group[key]),
+              success: function(res) {
+                console.log(res);
+              },
+              error: function(res) {
+                console.error(res)
+                errors.push(key);
+              },
+            });
+          } else {
+            throw new Error(`invalid stage: ${stage}`);
+          }
+        }
+        if (errors.length === 0) {
+          alert("成功しました。");
+        } else {
+          alert("更新に失敗したレコードがあります。お手数ですが再度エクスポートしてからインポートして下さい。\n\n" + errors.join('\n'));
+        }
+      }
+      const encoding = prompt("ファイルの文字コードを入力してください。\nWindows と Mac などの OS でデフォルトの文字コードが異なります。\nインポート結果が文字化けする場合、ファイルの文字コードを確認の上、適切な値を指定してください。\nSHIFT-JIS （主に Windows の）場合: 「SJIS」 を指定してください。\nUTF-8 （主に Mac の）場合: 「UTF-8」 を指定してください", "SJIS");
+      reader.readAsText(file, encoding);
+    });
+  </script>
+
+  </body>
+</html>
+
+{{ end }}

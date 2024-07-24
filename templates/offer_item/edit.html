@@ -1,0 +1,1445 @@
+{{ define "offer_item/edit.html" }}
+
+<!doctype html>
+<html lang="ja">
+  {{ template "head" . }}
+  <script src="{{ .contextPath }}/static/js/offer_item.js"></script>
+
+  <body>
+    {{ template "header" . }}
+
+    <style>
+
+    </style>
+
+
+<div class="container-md">
+  <div class="row">
+    {{ template "nav" . }}
+
+    <main class="col-md-12 ms-sm-auto col-lg-12 px-md-12">
+
+      {{ template "breadcrumb" . }}
+
+      <h1>案件編集</h1>
+      <form id="form">
+        <p><strong>基本設定</strong></p>
+
+        <input name="id" hidden>
+
+        <div class="mb-3">
+          <label class="form-label">案件名 <span class="badge bg-danger">必須</span></label>
+          <input name="name" type="text" class="form-control" placeholder="任意の名称" required>
+          <div class="form-text">
+            ※推奨している文字数は30字程度です。
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">案件 ID <span class="badge bg-danger">必須</span></label>
+          <input name="item_id" type="text" class="form-control" placeholder="RK000001" onchange="handleSpecialCommission();handleDraftedItemInfo();" required>
+        </div>
+        <script>
+          function handleDraftedItemInfo(itemId) {
+            const drafted_item_info_min_commission_rate = document.querySelector("input[name=drafted_item_info_min_commission_rate]");
+            const drafted_item_info_max_commission_rate = document.querySelector("input[name=drafted_item_info_max_commission_rate]");
+            const drafted_item_info_min_commission_amount = document.querySelector("input[name=drafted_item_info_min_commission_amount]");
+            const drafted_item_info_max_commission_amount = document.querySelector("input[name=drafted_item_info_max_commission_amount]");
+            if (itemId === undefined) {
+              itemId = document.querySelector("[name=item_id]").value;
+            }
+            fetch(`${contextPath}/api/affiliate_item/${itemId}`).then(res => {
+              if (!res.ok) {
+                console.error(res);
+                alert("案件の取得に失敗しました。案件 ID が正しいか確認してください。");
+                throw new Error(res);
+              }
+              return res.json();
+            }).then(res => {
+              if (res.data.max_commission_rate.commission_type === 1) {
+                drafted_item_info_min_commission_rate.disabled=false
+                drafted_item_info_max_commission_rate.disabled=false
+                drafted_item_info_min_commission_amount.disabled=true
+                drafted_item_info_max_commission_amount.disabled=true
+              } else if (res.data.max_commission_rate.commission_type === 2) {
+                drafted_item_info_min_commission_rate.disabled=true
+                drafted_item_info_max_commission_rate.disabled=true
+                drafted_item_info_min_commission_amount.disabled=false
+                drafted_item_info_max_commission_amount.disabled=false
+              }
+            })
+          }
+          function handleSpecialCommission(itemId, hasSpecialCommission) {
+            if (itemId === undefined) {
+              itemId = document.querySelector("[name=item_id]").value;
+            }
+            if (hasSpecialCommission === undefined) {
+              // has_special_commission は true/false のみのため true のみを参照
+              hasSpecialCommission = document.getElementById("has_special_commission_true").checked;
+            } else if (hasSpecialCommission === true) {
+              document.getElementById("has_special_commission_true").checked = true;
+              document.getElementById("has_special_commission_false").checked = false;
+            } else if (hasSpecialCommission === false) {
+              document.getElementById("has_special_commission_true").checked = false;
+              document.getElementById("has_special_commission_false").checked = true;
+            }
+            const specialAmountForm = document.querySelector("input[name=special_amount]");
+            const specialRateForm = document.querySelector("input[name=special_rate]");
+            if (!itemId) {
+              if (hasSpecialCommission) {
+                specialAmountForm.disabled = true;
+                specialRateForm.disabled = true;
+                hasSpecialCommission.checked = false;
+                document.getElementById("has_special_commission_false").checked = true;
+                alert("特別報酬を設定するには、案件 ID の指定が必須です。案件 ID を設定してください。")
+              }
+              return;
+            }
+            if (!hasSpecialCommission) {
+              specialAmountForm.disabled = true;
+              specialRateForm.disabled = true;
+              return;
+            }
+            fetch(`${contextPath}/api/affiliate_item/${itemId}`).then(res => {
+              if (!res.ok) {
+                console.error(res);
+                alert("案件の取得に失敗しました。案件 ID が正しいか確認してください。");
+                throw new Error(res);
+              }
+              return res.json();
+            }).then(res => {
+              if (res.data.max_commission_rate.commission_type === 1) {
+                specialAmountForm.disabled = true;
+                specialRateForm.disabled = false;
+              } else if (res.data.max_commission_rate.commission_type === 2) {
+                specialAmountForm.disabled = false;
+                specialRateForm.disabled = true;
+              }
+            })
+          }
+        </script>
+
+        <div class="mb-3">
+          <label class="form-label">商品 ID</label>
+          <input id="df_item_id" name="df_item_id" type="text" class="form-control" placeholder="abc:12345">
+        </div>
+        <script>
+          document.getElementById("df_item_id").addEventListener('change', (e) => {
+            const df_item_id = document.querySelector(`[name=df_item_id]`);
+            for (let elem of [
+              "drafted_item_info_name",
+              "drafted_item_info_content_name",
+              "drafted_item_info_url",
+              "drafted_item_info_image_url",
+              "drafted_item_info_min_commission_rate",
+              "drafted_item_info_max_commission_rate",
+              "drafted_item_info_min_commission_amount",
+              "drafted_item_info_max_commission_amount"
+            ]) {
+              const e = document.querySelector(`[name=${elem}`)
+            }
+          })
+        </script>
+
+        <div class="mb-3">
+          <label class="form-label">商品情報</label></br>
+          <button id="fill_drafted_item_info" class="btn btn-outline-primary rounded-pill">案件ID/商品IDから商品情報を取得する</button>
+        </div>
+        <script>
+          document.getElementById("fill_drafted_item_info").addEventListener("click", (e) => {
+            e.preventDefault(); // NOTE: フォーム内のクリックなので、自URLにクエリパラメタ付きでリロードしてしまうのを回避する
+
+            const item_id = document.querySelector(`[name=item_id]`).value;
+            const df_item_id = document.querySelector(`[name=df_item_id]`).value;
+            if (!item_id) {
+              alert("案件IDを入力してください")
+              return
+            }
+            const content_name = document.querySelector(`[name=drafted_item_info_content_name]`);
+            const old_content_name = content_name.value
+            const only_item = !df_item_id
+
+            $.ajax({
+              url: "{{ .contextPath }}/api/affiliate_item/" + item_id,
+              method: "GET",
+              contentType: "application/json",
+              success: function(res) {
+                console.log(res)
+                const content_name = document.querySelector(`[name=drafted_item_info_content_name]`);
+                content_name.value = res.data.content_name
+                  console.log(only_item)
+                if (only_item) {
+                  const item = res.data
+                  console.log(item)
+
+                  const name = document.querySelector(`[name=drafted_item_info_name]`);
+                  name.value = item.name
+                  const url = document.querySelector(`[name=drafted_item_info_url]`);
+                  url.value = item.url
+                  const image_url = document.querySelector(`[name=drafted_item_info_image_url]`);
+                  image_url.value = item.img
+                  const min_commission_rate = document.querySelector(`[name=drafted_item_info_min_commission_rate]`);
+                  const max_commission_rate = document.querySelector(`[name=drafted_item_info_max_commission_rate]`);
+                  const min_commission_amount = document.querySelector(`[name=drafted_item_info_min_commission_amount]`);
+                  const max_commission_amount = document.querySelector(`[name=drafted_item_info_max_commission_amount]`);
+                  if (item.min_commission_rate.commission_type === 1) {
+                    min_commission_rate.value = item.min_commission_rate.calculated_rate
+                    max_commission_rate.value = item.max_commission_rate.calculated_rate
+                    min_commission_amount.value = ""
+                    max_commission_amount.value = ""
+                  } else {
+                    min_commission_amount.value = item.min_commission_rate.calculated_rate
+                    max_commission_amount.value = item.max_commission_rate.calculated_rate
+                    min_commission_rate.value = ""
+                    max_commission_rate.value = ""
+                  }
+                  alert("成功しました。")
+                }
+              },
+              error: function(res) {
+                console.error(res)
+                alert(`案件情報が見つかりませんでした ${res.responseText}`)
+                throw new Error("not found item resp")
+              },
+            });
+
+            if (!only_item) {
+              $.ajax({
+                url: "{{ .contextPath }}/api/affiliate_item/" + item_id + "/df_item",
+                method: "GET",
+                contentType: "application/json",
+                data: "limit=10&df_item_id=" + df_item_id,
+                success: function(res) {
+                  console.log(res)
+                  if (res.data.length !== 1) {
+                    alert("商品が複数あります。サーバー管理者に問い合わせてください")
+                    throw new Error("invalid df_item resp")
+                  }
+                  const df_item = res.data[0]
+                  const df_item_image_url_infos = df_item.materials.filter((elem) => {
+                    return (elem.material_type === 2)
+                  })
+                  console.log(df_item_image_url_infos)
+                  if (df_item_image_url_infos.length < 1) {
+                    alert("サーバーから返却された画像URLが存在しません。サーバー管理者に問い合わせてください")
+                    throw new Error("invalid df_item image_url resp")
+                    return
+                  }
+                  const df_item_image_url_info = df_item_image_url_infos[0]
+                  console.log(df_item)
+
+                  const name = document.querySelector(`[name=drafted_item_info_name]`);
+                  name.value = df_item.name
+                  const url = document.querySelector(`[name=drafted_item_info_url]`);
+                  url.value = df_item.url
+                  const image_url = document.querySelector(`[name=drafted_item_info_image_url]`);
+                  image_url.value = df_item_image_url_info.value
+                  const min_commission_rate = document.querySelector(`[name=drafted_item_info_min_commission_rate]`);
+                  const max_commission_rate = document.querySelector(`[name=drafted_item_info_max_commission_rate]`);
+                  const min_commission_amount = document.querySelector(`[name=drafted_item_info_min_commission_amount]`);
+                  const max_commission_amount = document.querySelector(`[name=drafted_item_info_max_commission_amount]`);
+                  if (df_item.min_commission_rate.commission_type === 1) {
+                    min_commission_rate.value = df_item.min_commission_rate.calculated_rate
+                    max_commission_rate.value = df_item.max_commission_rate.calculated_rate
+                    min_commission_amount.value = ""
+                    max_commission_amount.value = ""
+                  } else {
+                    min_commission_amount.value = df_item.min_commission_rate.calculated_rate
+                    max_commission_amount.value = df_item.max_commission_rate.calculated_rate
+                    min_commission_rate.value = ""
+                    max_commission_rate.value = ""
+                  }
+                  alert("成功しました。")
+                },
+                error: function(res) {
+                  console.error(res)
+                  const content_name = document.querySelector(`[name=drafted_item_info_content_name]`);
+                  content_name.value = old_content_name
+                  alert(`商品情報が見つかりませんでした ${res.responseText}`)
+                  throw new Error("not found df_item resp")
+                },
+              });
+            }
+
+          })
+        </script>
+
+        <div class="mb-3 ps-3">
+          <label class="form-label">商品名 <span class="badge bg-danger">必須</span></label>
+          <input name="drafted_item_info_name" type="text" class="form-control" placeholder="今日の夕御飯はこれで決まり！ご当地ローストビーフ♪" required>
+        </div>
+
+        <div class="mb-3 ps-3">
+          <label class="form-label">会社名 <span class="badge bg-danger">必須</span></label>
+          <input name="drafted_item_info_content_name" type="text" class="form-control" placeholder="楽天グループ株式会社" required>
+        </div>
+
+        <div class="mb-3 ps-3">
+          <label class="form-label">URL <span class="badge bg-danger">必須</span></label>
+          <input name="drafted_item_info_url" type="text" class="form-control" placeholder="https://〜〜〜.html" required>
+        </div>
+
+        <div class="mb-3 ps-3">
+          <label class="form-label">画像URL <span class="badge bg-danger">必須</span></label>
+          <input name="drafted_item_info_image_url" type="text" class="form-control" placeholder="https://〜〜〜.jpg" required>
+        </div>
+
+        <div class="mb-3 ps-3">
+          <label class="form-label">報酬額/料率(最小〜最大)<span class="badge bg-danger">必須</span></label>
+          <div class="form-text mb-3">
+            ※ 報酬額/料率が範囲を持たない場合は、両方同じ値を指定してください</br>
+          </div>
+          <div class="container">
+            <div class="row">
+              <div class="col-4 mb-3">
+                報酬額(最小)
+              </div>
+              <div class="col-4 mb-3">
+                報酬額(最大)
+              </div>
+            </div>
+            <div class="form-text">
+              設定した <code>案件 ID</code> が定額案件の場合設定可能です。
+            </div>
+            <div class="row">
+              <div class="col-4 mb-3">
+                <input name="drafted_item_info_min_commission_amount" type="number" class="form-control" placeholder="5" disabled>
+              </div>
+              <div class="col-4 mb-3">
+                <input name="drafted_item_info_max_commission_amount" type="number" class="form-control" placeholder="10" disabled>
+              </div>
+            </div>
+          </div>
+          <div class="container">
+            <div class="row">
+              <div class="col-4 mb-3">
+                料率(最小)
+              </div>
+              <div class="col-4 mb-3">
+                料率(最大)
+              </div>
+            </div>
+            <div class="form-text">
+              設定した <code>案件 ID</code> が定率案件の場合設定可能です。
+            </div>
+            <div class="row">
+              <div class="col-4 mb-3">
+                <input name="drafted_item_info_min_commission_rate" type="number" class="form-control" placeholder="5" disabled>
+              </div>
+              <div class="col-4 mb-3">
+                <input name="drafted_item_info_max_commission_rate" type="number" class="form-control" placeholder="10" disabled>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <p><strong>案件条件</strong></p>
+
+        <p>
+          <p>選考</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_lottery" id="has_lottery_true" value="true" onclick="handleLottery(this.value === 'true')" checked>
+            <label class="form-check-label" for="has_lottery_true">選考あり</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_lottery" id="has_lottery_false" value="false" onclick="handleLottery(this.value === 'true')">
+            <label class="form-check-label" for="has_lottery_false">選考なし</label>
+          </div>
+        </p>
+        <script>
+          function handleLottery(enabled) {
+            // document.querySelector("input[name=lottery_schedule_id]").disabled = !enabled;
+            document.querySelector("input[name=lottery_schedule_range]").disabled = !enabled;
+            document.querySelector("input[name=lottery_schedule_range]").required = enabled;
+            const b = document.querySelector("#lottery_schedule_range_label .badge");
+            if (enabled) {
+              b.innerText = "必須";
+            } else {
+              b.innerText = ""
+              // document.querySelector("input[name=lottery_schedule_range]").value = "";
+            }
+          }
+        </script>
+
+        <p>
+          <p>サンプリング</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_sample" id="has_sample_true" value="true" onclick="handleSample(this.value === 'true')" checked>
+            <label class="form-check-label" for="has_sample_true">サンプリング</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_sample" id="has_sample_false" value="false" onclick="handleSample(this.value === 'true')">
+            <label class="form-check-label" for="has_sample_false">自己購入</label>
+          </div>
+        </p>
+        <script>
+          function handleSample(enabled) {
+            // document.querySelector("input[name=shipment_schedule_id]").disabled = !enabled;
+            document.querySelector("input[name=shipment_schedule_range]").disabled = !enabled;
+            document.querySelector("input[name=shipment_schedule_range]").required = enabled;
+            const b = document.querySelector("#shipment_schedule_range_label .badge");
+            if (enabled) {
+              b.innerText = "必須";
+            } else {
+              b.innerText = "";
+              // document.querySelector("input[name=shipment_schedule_range]").value = "";
+            }
+          }
+        </script>
+
+        <p>
+          <p>下書き審査</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="needs_preliminary_review" id="needs_preliminary_review_true" value="true" onclick="handlePreliminaryReview(this.value === 'true')" checked>
+            <label class="form-check-label" for="needs_preliminary_review_true">下書き審あり</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="needs_preliminary_review" id="needs_preliminary_review_false" value="false" onclick="handlePreliminaryReview(this.value === 'true')">
+            <label class="form-check-label" for="needs_preliminary_review_false">下書き審査なし</label>
+          </div>
+        </p>
+        <script>
+          function handlePreliminaryReview(enabled) {
+            // document.querySelector("input[name=draft_submission_schedule_id]").disabled = !enabled;
+            document.querySelector("input[name=draft_submission_schedule_range]").disabled = !enabled;
+            document.querySelector("input[name=draft_submission_schedule_range]").required = enabled;
+            const b = document.querySelector("#draft_submission_schedule_range_label .badge");
+            if (enabled) {
+              b.innerText = "必須";
+            } else {
+              b.innerText = "";
+              // document.querySelector("input[name=draft_submission_schedule_range]").value = "";
+            }
+            // document.querySelector("input[name=pre_examination_schedule_id]").disabled = !enabled;
+            document.querySelector("input[name=pre_examination_schedule_range]").disabled = !enabled;
+            document.querySelector("input[name=pre_examination_schedule_range]").required = enabled;
+            const b2 = document.querySelector("#pre_examination_schedule_range_label .badge");
+            if (enabled) {
+              b2.innerHTML = "必須";
+            } else {
+              b2.innerHTML = "";
+              // document.querySelector("input[name=pre_examination_schedule_range]").value = "";
+            }
+          }
+        </script>
+
+        <p>
+          <p>記事審査</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="needs_after_review" id="needs_after_review_true" value="true" onclick="handleAfterReview(this.value === 'true')" checked>
+            <label class="form-check-label" for="needs_after_review_true">記事審査あり</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="needs_after_review" id="needs_after_review_false" value="false" onclick="handleAfterReview(this.value === 'true')">
+            <label class="form-check-label" for="needs_after_review_false">記事審査なし</label>
+          </div>
+        </p>
+        <script>
+          function handleAfterReview(enabled) {
+            // document.querySelector("input[name=examination_schedule_id]").disabled = !enabled;
+            document.querySelector("input[name=examination_schedule_range]").disabled = !enabled;
+            document.querySelector("input[name=examination_schedule_range]").required = enabled;
+            const b = document.querySelector("#examination_schedule_range_label .badge");
+            if (enabled) {
+              b.innerText = "必須";
+            } else {
+              b.innerText = "";
+              // document.querySelector("input[name=examination_schedule_range]").value = "";
+            }
+          }
+        </script>
+
+        <p>
+          <p>PRマークやハッシュタグをつけるか
+          </p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="needs_pr_mark" id="needs_pr_mark_true" value="true" checked>
+            <label class="form-check-label" for="needs_pr_mark_true">自動で付与する</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="needs_pr_mark" id="needs_pr_mark_false" value="false">
+            <label class="form-check-label" for="needs_pr_mark_false">付与しない</label>
+          </div>
+            <div class="form-text">
+              ※基本「自動で付与する」を選択してください。広告主の事情などで記事執筆時にPRマークやハッシュタグ（#PR）を自動で付与しない場合にのみ「付与しない」を選択してください。</br>
+              また、「付与しない」を選択する場合には、広告規制の法律などに抵触する可能性があるため記事の監視体制などを確認してください。</br>
+            </div>
+        </p>
+
+        <p>
+          <p>投稿必須</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="post_required" id="post_required_true" value="true" checked>
+            <label class="form-check-label" for="post_required_true">投稿必須</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="post_required" id="post_required_false" value="false">
+            <label class="form-check-label" for="post_required_false">投稿任意</label>
+          </div>
+        </p>
+
+        <p>
+          <p>投稿先サービス</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="post_target" id="post_target_1" value="1" checked>
+            <label class="form-check-label" for="post_target_1">Ameba</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="post_target" id="post_target_2" value="2" disabled>
+            <label class="form-check-label" for="post_target_2">X(旧Twitter)</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="post_target" id="post_target_3" value="3" disabled>
+            <label class="form-check-label" for="post_target_3">Instagram</label>
+          </div>
+        </p>
+
+        <p>
+          <p>クーポン Pick</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_coupon" id="has_coupon_true" value="true" onclick="handleCoupon(this.value === 'true')" checked>
+            <label class="form-check-label" for="has_coupon_true">クーポン Pick あり</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_coupon" id="has_coupon_false" value="false" onclick="handleCoupon(this.value === 'true')">
+            <label class="form-check-label" for="has_coupon_false">クーポン Pick なし</label>
+          </div>
+        </p>
+        <script>
+          function handleCoupon(enabled) {
+            document.querySelector("input[name=coupon_banner_id]").disabled = !enabled;
+            if (!enabled) {
+              // document.querySelector("input[name=coupon_banner_id]").value = "";
+            }
+          }
+        </script>
+
+        <div class="mb-3">
+          <label class="form-label">クーポンバナー ID</label>
+          <input name="coupon_banner_id" type="text" class="form-control" placeholder="event:12345">
+          <div class="form-text">
+            審査リスト内の「クーポンバナー ID」に設定されます。提出した記事本文内に同じ ID が含まれる場合に設定されます。含まれない場合は空白文字。
+          </div>
+        </div>
+
+        <p>
+          <p>特別報酬</p>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_special_commission" id="has_special_commission_true" value="true" onclick="handleSpecialCommission()">
+            <label class="form-check-label" for="has_special_commission_true">特別報酬あり</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="has_special_commission" id="has_special_commission_false" value="false" onclick="handleSpecialCommission()" checked>
+            <label class="form-check-label" for="has_special_commission_false">特別報酬なし</label>
+          </div>
+        </p>
+
+        <hr>
+
+        <p><strong>特別報酬</strong></p>
+
+        <div class="mb-3">
+          <label class="form-label">特別報酬（マネー）</label>
+          <input name="special_amount" type="number" class="form-control" placeholder="1000" min="1" disabled>
+          <div class="form-text">
+            設定した <code>案件 ID</code> が定額案件の場合設定可能です。
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">特別料率（%）</label>
+          <input name="special_rate" type="number" class="form-control" placeholder="20" min="0.01" step="0.01" disabled>
+          <div class="form-text">
+            設定した <code>案件 ID</code> が定額案件の場合設定可能です。
+          </div>
+        </div>
+
+        <hr>
+
+        <p><strong>スケジュール</strong></p>
+
+        <div class="mb-3">
+          <input name="invitation_schedule_id" hidden>
+          <label class="form-label">参加募集 <span class="badge bg-danger">必須</span></label>
+          <input name="invitation_schedule_range" class="form-control range-schedule" required>
+        </div>
+
+        <div class="mb-3">
+          <input name="lottery_schedule_id" hidden>
+          <label id="lottery_schedule_range_label" class="form-label">選考中 <span class="badge bg-danger">必須</span></label>
+          <input name="lottery_schedule_range" class="form-control range-schedule" required>
+        </div>
+
+        <div class="mb-3">
+          <input name="shipment_schedule_id" hidden>
+          <label id="shipment_schedule_range_label" class="form-label">発送中 <span class="badge bg-danger">必須</span></label>
+          <input name="shipment_schedule_range" class="form-control range-schedule" required>
+        </div>
+
+        <div class="mb-3">
+          <input name="draft_submission_schedule_id" hidden>
+          <label id="draft_submission_schedule_range_label" class="form-label">下書き提出 <span class="badge bg-danger">必須</span></label>
+          <input name="draft_submission_schedule_range" class="form-control range-schedule" required>
+        </div>
+
+        <div class="mb-3">
+          <input name="pre_examination_schedule_id" hidden>
+          <label id="pre_examination_schedule_range_label" class="form-label">下書き審査 <span class="badge bg-danger">必須</span></label>
+          <input name="pre_examination_schedule_range" class="form-control range-schedule" required>
+        </div>
+
+        <div class="mb-3">
+          <input name="article_posting_schedule_id" hidden>
+          <label class="form-label">記事投稿 <span class="badge bg-danger">必須</span></label>
+          <input name="article_posting_schedule_range" class="form-control range-schedule" required>
+        </div>
+
+        <div class="mb-3">
+          <input name="examination_schedule_id" hidden>
+          <label id="examination_schedule_range_label" class="form-label">審査 <span class="badge bg-danger">必須</span></label>
+          <input name="examination_schedule_range" class="form-control range-schedule" required>
+        </div>
+
+        <div class="mb-3">
+          <input name="payment_schedule_id" hidden>
+          <label class="form-label">記事投稿後（ユーザからの見え方：支払い予定日） <span class="badge bg-danger">必須</span></label>
+          <input name="payment_schedule_range" class="form-control date-schedule" required>
+        </div>
+
+        <hr>
+
+        <p><strong>案件詳細</strong></p>
+
+        <div class="mb-3">
+          <label class="form-label">商品の特徴 <span class="badge bg-danger">必須</span></label>
+          <textarea name="product_features" class="form-control" rows="10" placeholder="累計60,000枚以上売れているロングセラーパンツです！
+愛される秘密は、ストレスフリーな履き心地と、ピッタリサイズが見つかる6サイズ展開！
+日常のどんな動作も妨げない170%伸びるストレッチ素材で、お仕事から普段までつい手に取ってしまう履き心地を実現しました！
+お子様と公園で遊ぶママや、介護職や飲食店で勤務されている方から家でくつろぎたい方まで、様々な用途のお客様に着用いただいています！
+" required></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">投稿時にご紹介いただきたい内容 <span class="badge bg-danger">必須</span></label>
+          <textarea name="reference_info" class="form-control" rows="10" placeholder="以下についてご記載ください。
+1.170%伸びるストレッチ性でストレスフリーな履き心地である点について
+2.サイズ展開が豊富である点について
+3.限定クーポンがある点について" required></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">ブログを投稿する際の注意・懸念点 <span class="badge bg-danger">必須</span></label>
+          <textarea name="cautionary_points" class="form-control" rows="10" placeholder="・「●●●」は注釈の記載が必須です。
+・●●●の表現はNGです。" required></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">その他特記事項 <span class="badge bg-danger">必須</span></label>
+          <textarea name="other_info" class="form-control" rows="10" placeholder="例）
+お買い物マラソン期間中にご紹介する場合、ポイント10倍となります。" required></textarea>
+        </div>
+
+        <hr>
+
+        <p><strong>メール設定</strong></p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label">案件参加依頼</label>
+            <input name="is_invitation_mail_sent" class="form-check-input" type="checkbox" role="switch">
+          </div>
+        </p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label">参加者へ案件詳細</label>
+            <input name="is_offer_detail_mail_sent" class="form-check-input" type="checkbox" role="switch">
+          </div>
+        </p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label">下書き審査の結果OK</label>
+            <input name="is_passed_preliminary_review_mail_sent" class="form-check-input" type="checkbox" role="switch" checked>
+          </div>
+        </p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label">下書き審査の結果NG</label>
+            <input name="is_failed_preliminary_review_mail_sent" class="form-check-input" type="checkbox" role="switch" checked>
+          </div>
+        </p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label">記事投稿</label>
+            <input name="is_article_post_mail_sent" class="form-check-input" type="checkbox" role="switch">
+          </div>
+        </p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label">審査の結果OK</label>
+            <input name="is_passed_after_review_mail_sent" class="form-check-input" type="checkbox" role="switch">
+          </div>
+        </p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label">審査の結果NG</label>
+            <input name="is_failed_after_review_mail_sent" class="form-check-input" type="checkbox" role="switch" checked>
+          </div>
+        </p>
+
+        <hr>
+
+        <p><strong>アンケート</strong></p>
+
+        <p>
+          <div class="form-check form-switch">
+            <label class="form-check-label"></label>
+            <input name="has_questionnaire" class="form-check-input" type="checkbox" role="switch" onclick="handleQuestionnaire(this.checked)" checked>
+          </div>
+        </p>
+        <script>
+          function handleQuestionnaire(b) {
+            if (b) {
+              document.querySelectorAll('.invalid-feedback').forEach(o => o.hidden = false);
+              editor.enable();
+            } else {
+              document.querySelectorAll('.invalid-feedback').forEach(o => o.hidden = true);
+              editor.disable();
+            }
+          }
+        </script>
+
+      </form>
+
+      <div id='editor_holder'></div>
+
+      <br>
+
+      <div>
+        <div class="alert alert-primary alert-dismissible fade show" role="alert">
+          <strong><i class="bi bi-info-square"></i> インポートする CSV 形式について</strong>
+          <pre>
+CSV 形式のファイルを指定してください。フォーマットは以下のカンマ区切りです。
+
+案件名,案件名,商品 ID,アメーバ ID,ステージ,執筆報酬額
+
+「アメーバ ID」、「ステージ」、「執筆報酬額」のみを参照します。
+
+指定可能なステージ
+- 募集前
+- 参加募集
+- 選考中
+- 選考落ち
+- 発送中
+- 下書き提出
+- 下書き再提出
+- 記事投稿
+- 記事再提出
+- 支払い中
+- 支払い完了
+- 終了</pre>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <input id="upload-assignee-csv" type="file" hidden>
+        <button onclick="document.getElementById('upload-assignee-csv').click();" class="btn btn-outline-primary rounded-pill">依頼者のリストをインポート</button>
+        <button onclick="downloadAssigneeCsv()" class="btn btn-outline-primary rounded-pill">依頼者のリストをエクスポート</button>
+        <button
+          onclick="
+            const target = document.getElementById('assignee-import');
+            target.hidden = !target.hidden;
+          "
+          class="btn btn-outline-secondary rounded-pill">依頼者をコピペしてインポート</button>
+      </div>
+
+      <div id="assignee-import" hidden>
+        <strong>インポートコピペ用</strong>
+        <div id="handsontable-example"></div>
+        <a id="handsontable-btn-update" class="btn btn-outline-secondary rounded-pill">反映（ CSV の情報を上書きします。）</a>
+        <script>
+          const container = document.querySelector('#handsontable-example');
+          const grid = new Handsontable(container, {
+            data: [[],[],[]],
+            columns: [
+              {
+                title: "アメーバ ID",
+              },
+              {
+                title: "ステージ",
+                type: "dropdown",
+                source: [
+                  "募集前",
+                  "参加募集",
+                  "選考中",
+                  "発送中",
+                  "下書き提出",
+                  "記事投稿",
+                  "支払い中",
+                  "支払い完了",
+                  "終了",
+                ],
+                strict: true,
+                allowInvalid: false,
+              },
+              {
+                title: "執筆報酬額",
+                type: "numeric",
+              },
+            ],
+            comments: true,
+            colHeaders: true,
+            rowHeaders: true,
+            columnSorting: true,
+            sortIndicator: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            stretchH: 'all',
+            height: 300, // 指定しない場合、シート内でのドラッグ操作時にページ上部に移動してしまうため指定しています
+            licenseKey: 'non-commercial-and-evaluation',
+          });
+          document.querySelector("#handsontable-btn-update").addEventListener('click', () => {
+            console.table(grid.getData());
+            const assignees = [];
+            for (let cols of grid.getData()) {
+              let amebaId = cols[0];
+              if (!amebaId) {
+                continue;
+              }
+              let stage = japaneseStageMap[cols[1]];
+              if (!stage) {
+                alert(`ステージが不正です。 ${cols[1]}`)
+                return;
+              }
+              let writingFee = Number(cols[2]);
+              if (!writingFee) {
+                alert(`報酬 の形式が不正です. ${amebaId} ${writingFee}`);
+                return;
+              }
+              assignees.push({
+                ameba_id: amebaId,
+                stage: stage,
+                writing_fee: writingFee,
+              });
+            }
+            if (assignees.length === 0) {
+              alert('件数が0件です')
+              return;
+            }
+            window.assignees = assignees;
+            alert("保存または更新で反映してください。")
+          });
+        </script>
+      </div>
+
+      <br>
+
+      <div>
+        <button id='submit' class="btn btn-primary rounded-pill" onclick="window.onbeforeunload=null">案件を{{ if .id }}更新{{ else }}作成{{ end }}する</button>
+      </div>
+
+      <br>
+
+      {{ if .id }}
+      <div>
+        <table
+          id="table"
+          data-toggle="table"
+          data-data-field="data"
+          data-undefined-text=""
+          data-url="{{ .contextPath }}/api/offer_item/{{ .id }}/assignee?with_offer_item=true">
+          <thead>
+            <tr>
+              <th data-field="OfferItem.name">案件名</th>
+              <th data-field="OfferItem.OptionalItem.Item.id">案件 ID</th>
+              <th data-field="OfferItem.OptionalDfItem.DfItem.id">商品 ID</th>
+              <th data-field="Assignee.ameba_id">アメーバ ID</th>
+              <th data-field="Assignee.stage" data-formatter="stageFormatter">ステージ</th>
+              <th data-field="Assignee.writing_fee">執筆報酬額</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      {{ else }}
+      <div>
+        <table
+          hidden
+          id="table"
+        >
+          <thead>
+            <tr>
+              <th>案件名</th>
+              <th>案件名</th>
+              <th>商品 ID</th>
+              <th>アメーバ ID</th>
+              <th>ステージ</th>
+              <th>執筆報酬額</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      {{ end }}
+
+      <hr>
+
+      <h3>以下、デバッグ項目です</h3>
+
+      <pre id="confirm-assignees"></pre>
+      <pre id="confirm-form"></pre>
+
+      <script>
+        window.onbeforeunload = function(e) {
+          e.preventDefault();
+          return '';
+        }
+        const $table = $('#table');
+        $table.bootstrapTable({
+          formatNoMatches: function () {
+            return '';
+          }
+        });
+        function downloadAssigneeCsv() {
+          $table.tableExport({
+            fileName: "{{ if .id }}{{ .data.Name }}_{{end}}依頼者",
+          });
+        }
+
+        // e.g. 2024-01-01 to 2024-12-01
+        function decodeDateSchedule(id, range) {
+          if (!range) {
+            return {
+              id: id,
+            };
+          }
+          let start = "";
+          let end = "";
+          if (range.includes(' to ')) {
+            [start, end] = range.split(' to ');
+          } else {
+            start = range;
+            end = range;
+          }
+          start = new Date(start + "T00:00:00+09:00");
+          end = new Date(end + "T23:59:59+09:00");
+          if (!start.getTime() || !end.getTime()) {
+            return {};
+          }
+          return {
+            id: id,
+            start_date: start.toISOString(),
+            end_date: end.toISOString(),
+          }
+        }
+
+        document.getElementById("upload-assignee-csv").addEventListener('change', (e) => {
+          const reader = new FileReader();
+          const file = e.target.files[0];
+          e.target.value = '';
+          reader.onload = () => {
+            let csv;
+            try {
+              csv = $.csv.toArrays(reader.result);
+            } catch (e) {
+              alert('CSV ファイルの読み込みに失敗しました。 CSV ファイルか確認してください。');
+            }
+            const assignees = [];
+            let max_assignee_count = 5000
+            if ("{{ .environment }}" !== "prd") {
+              max_assignee_count = 100
+            }
+            console.log(`csv input limit is ${max_assignee_count}`)
+            console.log(`csv length (include header) is ${$(csv).length}`)
+            if ($(csv).length > max_assignee_count + 1) {
+              alert(`csvのヘッダを除いた行数を${max_assignee_count}行以内にしてください`)
+              throw new Error("failed")
+            }
+            $(csv).each(function(idx, cols) {
+              if (idx === 0) {
+                // ヘッダー: 案件名,案件 ID,商品 ID,アメーバ ID,ステージ,執筆報酬額
+                // アメーバ ID とステージ、執筆報酬額のみを参照する
+                // https://docs.google.com/spreadsheets/d/1P9TKqiJLiAk6Q9W6riqDYg-SwClWis6lT_hhwXg_8Oo/edit#gid=375039304
+                return;
+              }
+              let amebaId = cols[3];
+              if (amebaId === "") {
+                alert(`amebaId の形式が不正です. ${amebaId}`);
+                throw new Error("failed")
+              }
+              let stage = japaneseStageMap[cols[4]];
+              if (!stage) {
+                alert(`ステージが不正です。 ${cols[4]}`)
+                throw new Error("failed")
+              }
+              let writingFee = Number(cols[5]);
+              if (!writingFee) {
+                alert(`報酬 の形式が不正です. ${amebaId} ${writingFee}`);
+                throw new Error("failed")
+              }
+              assignees.push({
+                ameba_id: amebaId,
+                stage: stage,
+                writing_fee: writingFee,
+              });
+            });
+            window.assignees = assignees;
+            alert(`最初の 3 件をプレビューしています。\n${JSON.stringify(assignees.slice(0,3))}`);
+          }
+          reader.readAsText(file);
+        });
+
+        document.getElementById("submit").addEventListener("click", () => {
+          const form = document.getElementById("form")
+          const inputs = form.querySelectorAll("[name]");
+          for (let input of inputs) {
+            if (!input.checkValidity()) {
+              if (input.parentElement) {
+                input.parentElement.scrollIntoView({
+                  behavior: "smooth",
+                });
+                const label = input.parentElement.querySelector(".form-label");
+                if (label) {
+                  alert(`「${label.textContent}」の入力が不正です。` + input.validationMessage);
+                } else {
+                  alert("入力が不正です。" + input.validationMessage);
+                }
+              } else {
+                input.scrollIntoView({
+                  behavior: "smooth",
+                });
+                alert("入力が不正です。" + input.validationMessage);
+              }
+              return;
+            }
+          }
+          const formData = new FormData(form);
+          const v = Object.fromEntries(formData);
+          if (v["has_questionnaire"]) {
+            const questionnaire = editor.getValue();
+            v["questionnaire"] = questionnaire;
+          }
+          v["assignees"] = window.assignees || [];
+          console.log(v)
+
+          // 料率/報酬額両方指定したら落とす
+          const inputed_drafted_item_info_commission_rate = (
+            v["drafted_item_info_min_commission_rate"]    && v["drafted_item_info_max_commission_rate"] &&
+            !v["drafted_item_info_min_commission_amount"] && !v["drafted_item_info_max_commission_amount"])
+          const inputed_drafted_item_info_commission_amount = (
+            !v["drafted_item_info_min_commission_rate"]   && !v["drafted_item_info_max_commission_rate"] &&
+            v["drafted_item_info_min_commission_amount"]  && v["drafted_item_info_max_commission_amount"])
+          if (
+            !(inputed_drafted_item_info_commission_rate || inputed_drafted_item_info_commission_amount)
+          ) {
+            alert("入力が不正です。料率/報酬額は片方のみ最小、最大両方指定してください")
+            // TODO: scrollIntoView
+            return
+          }
+          v["drafted_item_info_commission_type"] = (v["drafted_item_info_min_commission_rate"] > 0) ? 1 : 2
+          const drafted_commission_type_key = (v["drafted_item_info_commission_type"] === 1) ? "rate" : "amount"
+          for (let key of [
+            "drafted_item_info_min_commission",
+            "drafted_item_info_max_commission",
+          ]) {
+            v[key] = Number(v[`${key}_${drafted_commission_type_key}`])
+          }
+          delete v["drafted_item_info_min_commission_amount"]
+          delete v["drafted_item_info_max_commission_amount"]
+          delete v["drafted_item_info_min_commission_rate"]
+          delete v["drafted_item_info_max_commission_rate"]
+          console.log(v["drafted_item_info_min_commission"])
+          console.log(v["drafted_item_info_max_commission"])
+          if (v["drafted_item_info_min_commission"] > v["drafted_item_info_max_commission"]) {
+            alert("入力が不正です。料率/報酬額の最大が最小より大きいです")
+            // TODO: scrollIntoView
+            return
+          }
+          for (let key of [
+            "invitation_schedule",
+            "lottery_schedule",
+            "shipment_schedule",
+            "draft_submission_schedule",
+            "pre_examination_schedule",
+            "article_posting_schedule",
+            "examination_schedule",
+            "payment_schedule",
+          ]){
+            v[key] = decodeDateSchedule(v[`${key}_id`], v[`${key}_range`]);
+          }
+          for (let key of [
+            "has_sample",
+            "needs_preliminary_review",
+            "needs_after_review",
+            "needs_pr_mark",
+            "post_required",
+            "has_coupon",
+            "has_lottery",
+            "has_special_commission",
+          ]) {
+            v[key] = v[key] === "true";
+          }
+          for (let key of [
+            "post_target",
+          ]) {
+            v[key] = Number(v[key]);
+          }
+          for (let key of [
+            "special_amount",
+            "special_rate",
+          ]) {
+            v[key] = Number(v[key]);
+            v[`has_${key}`] = v[key] > 0;
+          }
+
+          for (let key of [
+            "is_invitation_mail_sent",
+            "is_offer_detail_mail_sent",
+            "is_passed_preliminary_review_mail_sent",
+            "is_failed_preliminary_review_mail_sent",
+            "is_article_post_mail_sent",
+            "is_passed_after_review_mail_sent",
+            "is_failed_after_review_mail_sent",
+            "has_questionnaire",
+          ]) {
+            v[key] = v[key] === "on";
+          }
+          console.log(v);
+
+          const parts = location.pathname.split('/');
+          const last = parts[parts.length-1];
+          let method;
+          let url;
+          if (last === 'new') {
+            method = 'POST';
+            url = `${contextPath}/api/offer_item`;
+            delete v["id"];
+          } else if (last === 'edit') {
+            method = 'PATCH';
+            url = `${contextPath}/api/offer_item/${parts[parts.length-2]}`;
+          }
+          fetch(url, {
+            method: method,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(v),
+          })
+          .then(async res => {
+            const data = await res.json()
+            if (!res.ok) {
+              throw new Error(data);
+            }
+            console.log(data);
+            alert('保存しました。');
+            location.href = `${contextPath}/offer_item`;
+          })
+          .catch(data => {
+            console.error(data);
+            if (data.message.includes('affiliate-item not found')) {
+              alert(`エラーです。案件が存在しません。指定した ID が正しいか確認して下さい。\n\n詳細：\n${data}`);
+            } else {
+              alert(`エラーです。 ${data}`);
+            }
+          });
+          $('pre#confirm-form').html(JSON.stringify(v, null , "\t"));
+        });
+
+        const editor = new JSONEditor(document.getElementById('editor_holder'), {
+          schema: {
+            title: " ",
+            type: "object",
+            required: [
+              "detail",
+              "questions",
+            ],
+            properties: {
+              detail: {
+                title: "アンケート詳細",
+                type: "string",
+                minLength: 1,
+                format: "textarea",
+                options: {
+                  input_height: "300px",
+                  inputAttributes: {
+                    placeholder: `アンケートの内容について、記述しましょう`,
+                  }
+                },
+              },
+              questions: {
+                title: "質問",
+                type: "array",
+                minItems: 1,
+                uniqueItems: true,
+                items: {
+                  title: "質問",
+                  type: "object",
+                  required: [
+                    "type",
+                    "title",
+                    "options",
+                  ],
+                  properties: {
+                    id: {
+                      type: "string",
+                      options: {
+                        hidden: true,
+                      },
+                    },
+                    type: {
+                      title: "アンケート回答種別",
+                      type: "number",
+                      enum: [
+                        1,
+                        2
+                      ],
+                      options: {
+                        enum_titles: [
+                          "ラジオボタン",
+                          "フリーテキスト",
+                        ],
+                      },
+                    },
+                    title: {
+                      title: "アンケートタイトル",
+                      type: "string",
+                      minLength: 1,
+                    },
+                    image_data: {
+                      type: "string",
+                      title: "画像",
+                      format: "url",
+                      description: "最大で 1MB 程度の画像を設定してください。",
+                      options: {
+                        hidden: true,
+                        upload: {
+                          auto_upload: true,
+                          enable_drag_drop: true,
+                          upload_handler: (jseditor, type, file, cbs) => {
+                            if (type === 'root.upload_fail') {
+                              cbs.failure('Upload failed');
+                            } else {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const base64Image = event.target.result;
+                                cbs.success(base64Image);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          },
+                          max_upload_size: 1*1024*1024,
+                        }
+                      },
+                      links: [
+                        {
+                          href: "{self}",
+                          rel: "view",
+                        }
+                      ]
+                    },
+                    options: {
+                      title: "選択肢",
+                      type: "array",
+                      minItems: 1,
+                      uniqueItems: true,
+                      items: {
+                        title: "選択肢",
+                        type: "string",
+                        minLength: 1,
+                      },
+                    },
+                  },
+                  if: {
+                    properties: {
+                      type: {
+                        const: 1,
+                      },
+                    },
+                  },
+                  then: {
+                    properties: {
+                      options: {
+                        options: {
+                          hidden: false,
+                        }
+                      }
+                    }
+                  },
+                  else: {
+                    properties: {
+                      options: {
+                        options: {
+                          hidden: true,
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          theme: 'bootstrap5',
+          form_name_root: "questionnaire",
+          disable_edit_json: true,
+          disable_properties: true,
+          disable_collapse: true,
+          enable_array_copy: true,
+          disable_array_reorder: false,
+          show_errors: "always",
+        });
+
+        editor.on('change',function () {
+          const questionsEditor = editor.getEditor('questionnaire.questions');
+          const questions = questionsEditor.getValue();
+          const targetQuestionId = questions[questions.length-1].id;
+          questions.slice(0, -1).forEach((elem) => {
+            if (elem.id === targetQuestionId) {
+              questions[questions.length-1].id = '';
+              console.log('reset question id when copy question');
+            }
+          });
+          questionsEditor.setValue(questions);
+          console.log(questions);
+        });
+
+        editor.on('ready',() => {
+          const v = JSON.parse("{{if .data}}{{ JSON .data }}{{else}}{}{{end}}");
+          editor.setValue(v.questionnaire);
+          $('#confirm-form').html(JSON.stringify(v, null , "\t"));
+        });
+
+        document.addEventListener("DOMContentLoaded", (event) => {
+          flatpickr(".range-schedule", {
+            mode: "range",
+            allowInput: true,
+          });
+          flatpickr(".date-schedule", {
+            allowInput: true,
+          });
+          const data = JSON.parse("{{JSON .data}}");
+          if (!data) {
+            return;
+          }
+          for (let name of [
+            "id",
+            "name",
+            "item_id",
+            "df_item_id",
+            "coupon_banner_id",
+          ]) {
+            const e = document.querySelector(`[name=${name}]`);
+            e.value = data[name];
+          }
+          for (let name of [
+            "drafted_item_info_name",
+            "drafted_item_info_content_name",
+            "drafted_item_info_url",
+            "drafted_item_info_image_url",
+          ]) {
+            const e = document.querySelector(`[name=${name}]`);
+            e.value = data[name];
+          }
+          const drafted_commission_type = (data["drafted_item_info_commission_type"] === 1) ? "rate" : "amount"
+          for (let name of [
+            "drafted_item_info_min_commission",
+            "drafted_item_info_max_commission",
+          ]) {
+            const e = document.querySelector(`[name=${name}_${drafted_commission_type}]`);
+            e.value = data[name];
+          }
+          for (let name of [
+            "special_amount",
+            "special_rate",
+          ]) {
+            const e = document.querySelector(`[name=${name}]`);
+            if (data[name]) {
+              e.value = data[name];
+            } else {
+              e.value = "";
+            }
+          }
+          for (let name of [
+            "product_features",
+            "cautionary_points",
+            "reference_info",
+            "other_info",
+          ]) {
+            const e = document.querySelector(`[name=${name}]`);
+            e.textContent = data[name];
+          }
+          for (let name of [
+            "has_sample",
+            "needs_preliminary_review",
+            "needs_after_review",
+            "needs_pr_mark",
+            "post_required",
+            "post_target",
+            "has_coupon",
+            "has_lottery",
+          ]) {
+            const e = document.getElementById(`${name}_${data[name]}`);
+            e.checked = true;
+          }
+          for (let name of [
+            "invitation_schedule",
+            "lottery_schedule",
+            "shipment_schedule",
+            "draft_submission_schedule",
+            "pre_examination_schedule",
+            "article_posting_schedule",
+            "examination_schedule",
+            "payment_schedule",
+          ]) {
+            const e = document.querySelector(`[name=${name}_range]`);
+            const schedule = data[name];
+            const start = formatDate(new Date(schedule.start_date), "yyyy-MM-dd")
+            const end = formatDate(new Date(schedule.end_date), "yyyy-MM-dd")
+            if (start === "1970-01-01" && end === "1970-01-01") {
+              e.value = "";
+            } else if (start === end) {
+              e.value = `${start}`;
+            } else {
+              e.value = `${start} to ${end}`;
+            }
+            const eid = document.querySelector(`[name=${name}_id]`);
+            eid.value = schedule.id;
+          }
+          for (let name of [
+            "is_invitation_mail_sent",
+            "is_offer_detail_mail_sent",
+            "is_passed_preliminary_review_mail_sent",
+            "is_failed_preliminary_review_mail_sent",
+            "is_article_post_mail_sent",
+            "is_passed_after_review_mail_sent",
+            "is_failed_after_review_mail_sent",
+            "has_questionnaire",
+          ]) {
+             const e = document.querySelector(`[name=${name}]`);
+             e.checked = data[name];
+          }
+
+          handleLottery(data["has_lottery"]);
+          handleSample(data["has_sample"]);
+          handlePreliminaryReview(data["needs_preliminary_review"]);
+          handleAfterReview(data["needs_after_review"]);
+          handleCoupon(data["has_coupon"]);
+          handleSpecialCommission(data["item_id"], data["has_special_commission"]);
+          handleQuestionnaire(data["has_questionnaire"]);
+          handleDraftedItemInfo(data["item_id"]);
+        });
+      </script>
+
+    </main>
+
+  </div>
+</div>
+
+  {{ template "footer" . }}
+
+  </body>
+</html>
+
+{{ end }}
