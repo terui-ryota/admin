@@ -48,26 +48,26 @@
             if (itemId === undefined) {
               itemId = document.querySelector("[name=item_id]").value;
             }
-            fetch(`${contextPath}/api/affiliate_item/${itemId}`).then(res => {
-              if (!res.ok) {
-                console.error(res);
-                alert("案件の取得に失敗しました。案件 ID が正しいか確認してください。");
-                throw new Error(res);
-              }
-              return res.json();
-            }).then(res => {
-              if (res.data.max_commission_rate.commission_type === 1) {
-                drafted_item_info_min_commission_rate.disabled=false
-                drafted_item_info_max_commission_rate.disabled=false
-                drafted_item_info_min_commission_amount.disabled=true
-                drafted_item_info_max_commission_amount.disabled=true
-              } else if (res.data.max_commission_rate.commission_type === 2) {
-                drafted_item_info_min_commission_rate.disabled=true
-                drafted_item_info_max_commission_rate.disabled=true
-                drafted_item_info_min_commission_amount.disabled=false
-                drafted_item_info_max_commission_amount.disabled=false
-              }
-            })
+            // fetch(`${contextPath}/api/affiliate_item/${itemId}`).then(res => {
+            //   if (!res.ok) {
+            //     console.error(res);
+            //     alert("案件の取得に失敗しました。案件 ID が正しいか確認してください。");
+            //     throw new Error(res);
+            //   }
+            //   return res.json();
+            // }).then(res => {
+            //   if (res.data.max_commission_rate.commission_type === 1) {
+            //     drafted_item_info_min_commission_rate.disabled=false
+            //     drafted_item_info_max_commission_rate.disabled=false
+            //     drafted_item_info_min_commission_amount.disabled=true
+            //     drafted_item_info_max_commission_amount.disabled=true
+            //   } else if (res.data.max_commission_rate.commission_type === 2) {
+            //     drafted_item_info_min_commission_rate.disabled=true
+            //     drafted_item_info_max_commission_rate.disabled=true
+            //     drafted_item_info_min_commission_amount.disabled=false
+            //     drafted_item_info_max_commission_amount.disabled=false
+            //   }
+            // })
           }
           function handleSpecialCommission(itemId, hasSpecialCommission) {
             if (itemId === undefined) {
@@ -100,23 +100,24 @@
               specialRateForm.disabled = true;
               return;
             }
-            fetch(`${contextPath}/api/affiliate_item/${itemId}`).then(res => {
-              if (!res.ok) {
-                console.error(res);
-                alert("案件の取得に失敗しました。案件 ID が正しいか確認してください。");
-                throw new Error(res);
-              }
-              return res.json();
-            }).then(res => {
-              if (res.data.max_commission_rate.commission_type === 1) {
-                specialAmountForm.disabled = true;
-                specialRateForm.disabled = false;
-              } else if (res.data.max_commission_rate.commission_type === 2) {
-                specialAmountForm.disabled = false;
-                specialRateForm.disabled = true;
-              }
-            })
           }
+          //   fetch(`${contextPath}/api/affiliate_item/${itemId}`).then(res => {
+          //     if (!res.ok) {
+          //       console.error(res);
+          //       alert("案件の取得に失敗しました。案件 ID が正しいか確認してください。");
+          //       throw new Error(res);
+          //     }
+          //     return res.json();
+          //   }).then(res => {
+          //     if (res.data.max_commission_rate.commission_type === 1) {
+          //       specialAmountForm.disabled = true;
+          //       specialRateForm.disabled = false;
+          //     } else if (res.data.max_commission_rate.commission_type === 2) {
+          //       specialAmountForm.disabled = false;
+          //       specialRateForm.disabled = true;
+          //     }
+          //   })
+          // }
         </script>
 
         <div class="mb-3">
@@ -285,7 +286,7 @@
         </div>
 
         <div class="mb-3 ps-3">
-          <label class="form-label">報酬額/料率(最小〜最大)<span class="badge bg-danger">必須</span></label>
+          <label class="form-label">報酬額/料率(最小〜最大)</label>
           <div class="form-text mb-3">
             ※ 報酬額/料率が範囲を持たない場合は、両方同じ値を指定してください</br>
           </div>
@@ -298,15 +299,12 @@
                 報酬額(最大)
               </div>
             </div>
-            <div class="form-text">
-              設定した <code>案件 ID</code> が定額案件の場合設定可能です。
-            </div>
             <div class="row">
               <div class="col-4 mb-3">
-                <input name="drafted_item_info_min_commission_amount" type="number" class="form-control" placeholder="5" disabled>
+                <input name="drafted_item_info_min_commission_amount" type="number" class="form-control" placeholder="5">
               </div>
               <div class="col-4 mb-3">
-                <input name="drafted_item_info_max_commission_amount" type="number" class="form-control" placeholder="10" disabled>
+                <input name="drafted_item_info_max_commission_amount" type="number" class="form-control" placeholder="10">
               </div>
             </div>
           </div>
@@ -319,15 +317,12 @@
                 料率(最大)
               </div>
             </div>
-            <div class="form-text">
-              設定した <code>案件 ID</code> が定率案件の場合設定可能です。
-            </div>
             <div class="row">
               <div class="col-4 mb-3">
-                <input name="drafted_item_info_min_commission_rate" type="number" class="form-control" placeholder="5" disabled>
+                <input name="drafted_item_info_min_commission_rate" type="number" class="form-control" placeholder="5">
               </div>
               <div class="col-4 mb-3">
-                <input name="drafted_item_info_max_commission_rate" type="number" class="form-control" placeholder="10" disabled>
+                <input name="drafted_item_info_max_commission_rate" type="number" class="form-control" placeholder="10">
               </div>
             </div>
           </div>

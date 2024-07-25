@@ -10,6 +10,8 @@ import (
 	"github.com/terui-ryota/admin/internal/app/admin-web/app"
 	"github.com/terui-ryota/admin/internal/app/admin-web/config"
 	"github.com/terui-ryota/admin/internal/app/admin-web/handler"
+	adapterimpl "github.com/terui-ryota/admin/internal/infrastructure/adapter"
+	"github.com/terui-ryota/admin/internal/usecase"
 	"github.com/terui-ryota/admin/pkg/logger"
 	"github.com/volatiletech/sqlboiler/boil"
 	"go.uber.org/zap"
@@ -37,9 +39,9 @@ func configure() config.AdminWebConfig {
 			ClientID: "xxxxxxxxxxxxxxx",
 		},
 		GRPCServers: config.GRPCServers{
-			OfferItemV2GRPCServer: config.OfferItemV2GRPCServer{
+			OfferItemGRPCServer: config.OfferItemGRPCServer{
 				Host: "localhost",
-				Port: 19001,
+				Port: 19001, // offer_itemのconfig.yamlに設定されているgrpc_portに合わせる
 			},
 		},
 		Databases: config.Databases{
@@ -106,7 +108,7 @@ func configure() config.AdminWebConfig {
 	// リモート環境共通項目
 	if slices.Contains([]string{"dev", "stg", "prd"}, env) {
 		c.Application.ContextPath = "/x"
-		c.GRPCServers.OfferItemV2GRPCServer = config.OfferItemV2GRPCServer{
+		c.GRPCServers.OfferItemGRPCServer = config.OfferItemGRPCServer{
 			Host: "offer-item-v2-api.pick.svc.cluster.local",
 			Port: 5000,
 		}
@@ -162,14 +164,14 @@ func main() {
 	//primaryDB := loadDB(c.Databases.Primary)
 	//replicaDB := loadDB(c.Databases.Replica)
 	//userRepository := repositoryimpl.NewUserRepositoryImpl(primaryDB, replicaDB)
-	//offerItemV2Adapter, err := adapterimpl.NewOfferItemV2AdapterImpl(c.GRPCServers.OfferItemV2GRPCServer)
-	//if err != nil {
-	//	logger.Default().Errorf("adapterimpl.NewOfferItemV2AdapterImpl: %w", err)
-	//	os.Exit(1)
-	//}
-	//offerItemUsecase := usecase.NewOfferItemUsecaseImpl(
-	//	offerItemV2Adapter,
-	//)
+	offerItemAdapter, err := adapterimpl.NewOfferItemAdapterImpl(c.GRPCServers.OfferItemGRPCServer)
+	if err != nil {
+		logger.Default().Errorf("adapterimpl.NewOfferItemAdapterImpl: %w", err)
+		os.Exit(1)
+	}
+	offerItemUsecase := usecase.NewOfferItemUsecaseImpl(
+		offerItemAdapter,
+	)
 	if err := app.NewApp(
 		c.Application,
 		//*handler.NewAdminHandler(
@@ -180,10 +182,9 @@ func main() {
 		*handler.NewAuthHandler(
 			c.Application,
 		),
-		//*handler.NewOfferItemHandler(
-		//	offerItemUsecase,
-		//	c.ZipPasswordConfig.ShipmentZipPassoword,
-		//),
+		*handler.NewOfferItemHandler(
+			offerItemUsecase,
+		),
 		*handler.NewSystemHandler(),
 	).Start(); err != nil {
 		logger.Default().Errorf("Start: %w", err)
