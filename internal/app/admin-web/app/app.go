@@ -28,24 +28,24 @@ import (
 type app struct {
 	applicationConfig config.Application
 	//adminHandler      handler.AdminHandler
-	authHandler handler.AuthHandler
-	//offerItemHandler  handler.OfferItemHandler
-	systemHandler handler.SystemHandler
+	authHandler      handler.AuthHandler
+	offerItemHandler handler.OfferItemHandler
+	systemHandler    handler.SystemHandler
 }
 
 func NewApp(
 	applicationConfig config.Application,
 	//adminHandler handler.AdminHandler,
 	authHandler handler.AuthHandler,
-	//offerItemHandler handler.OfferItemHandler,
+	offerItemHandler handler.OfferItemHandler,
 	systemHandler handler.SystemHandler,
 ) *app {
 	return &app{
 		applicationConfig: applicationConfig,
 		//adminHandler:      adminHandler,
-		authHandler: authHandler,
-		//offerItemHandler:  offerItemHandler,
-		systemHandler: systemHandler,
+		authHandler:      authHandler,
+		offerItemHandler: offerItemHandler,
+		systemHandler:    systemHandler,
 	}
 }
 
@@ -107,6 +107,31 @@ func (a *app) Start() error {
 	// github.com/ca-media-nantes/pick/go-lib/pkg/common_metadata での共通項目を取得するために必要です
 	// common_metadata 内で auth_handler の saveLoginUserToContext で設定した共通項目を取得できるようになります
 	router.ContextWithFallback = true
+	router.GET("/offer_item", a.offerItemHandler.ListOfferItemsHTML)
+	router.GET("/offer_item/new", a.offerItemHandler.GetOfferItemNewHTML)
+	router.GET("/offer_item/:offer_item_id", a.offerItemHandler.GetOfferItemDetailHTML)
+	router.GET("/offer_item/:offer_item_id/edit", a.offerItemHandler.GetOfferItemEditHTML)
+	router.GET("/offer_item/:offer_item_id/:stage", a.offerItemHandler.GetOfferItemStageDetailHTML)
+	//router.GET("/offer_item/:offer_item_id/shipment/zip/:filename", a.offerItemHandler.DownloadShipmentZip)
+	router.GET("/offer_item/:offer_item_id/shipment/preview/:filename", a.offerItemHandler.DownloadShipmentPreview)
+	router.GET("api/offer_item/search", a.offerItemHandler.SearchOfferItemsJSON)
+	router.POST("api/offer_item", a.offerItemHandler.CreateOfferItem)
+	router.GET("api/offer_item/assignee_under_examination", a.offerItemHandler.ListAssigneesUnderExaminationJSON)
+	router.GET("api/offer_item/:offer_item_id", a.offerItemHandler.GetOfferItem)
+	router.PATCH("api/offer_item/:offer_item_id", a.offerItemHandler.UpdateOfferItem)
+	router.DELETE("api/offer_item/:offer_item_id", a.offerItemHandler.DeleteOfferItem)
+	router.PATCH("api/offer_item/:offer_item_id/invite", a.offerItemHandler.Invite)
+	router.GET("api/offer_item/:offer_item_id/assignee", a.offerItemHandler.ListAssigneesJSON)
+
+	router.POST("api/offer_item/:offer_item_id/stage/:stage/send_remind_mail", a.offerItemHandler.SendRemindMail)
+
+	router.POST("api/offer_item/:offer_item_id/save_lottery_results", a.offerItemHandler.SaveLotteryResults)
+	router.POST("api/offer_item/:offer_item_id/save_preexamination_results", a.offerItemHandler.SavePreExaminationResults)
+	router.POST("api/offer_item/:offer_item_id/save_examination_results", a.offerItemHandler.SaveExaminationResults)
+	router.POST("api/offer_item/:offer_item_id/finish_shipment", a.offerItemHandler.FinishShipment)
+	router.POST("api/offer_item/:offer_item_id/save_payment_results", a.offerItemHandler.SavePaymentResults)
+
+	router.PATCH("/offer_item/:offer_item_id/close", a.offerItemHandler.Close)
 
 	//// 認証必須のエンドポイント
 	//requiredAuth := router.Group("/").Use(a.authHandler.Authorize, handler.CheckPermission)
